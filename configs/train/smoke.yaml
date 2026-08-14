@@ -1,0 +1,10 @@
+epochs: 1
+batch: 4
+workers: 0
+device: cpu
+seed: 42
+deterministic: true
+patience: 0
+optimizer: auto
+pretrained: true
+purpose: mechanics-only

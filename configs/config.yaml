@@ -1,0 +1,12 @@
+defaults:
+  - model: yolov8n
+  - data: warehouse
+  - train: baseline
+  - tracking: wandb
+  - export: tflite_int8
+  - targets: matrix
+  - _self_
+
+run:
+  name: peregrine-baseline
+  output_dir: artifacts/runs

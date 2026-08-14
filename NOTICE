@@ -1,0 +1,7 @@
+Peregrine — computer-vision device-inference MLOps demo
+
+Code: MIT (see LICENSE).
+Model lanes derived from YOLOv8 (Ultralytics) are AGPL-3.0; no model weights are
+distributed in this repository. The demo path trains/evaluates locally.
+Contract fixture data: synthetic, authored for this repository. No third-party
+images or annotations are included.

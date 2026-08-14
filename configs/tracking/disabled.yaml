@@ -1,0 +1,7 @@
+provider: wandb
+project: peregrine-edge-mlops
+job_type: smoke
+mode: disabled
+tags: [warehouse, yolov8n, cpu-smoke]
+api_key_env: WANDB_API_KEY
+entity_env: WANDB_ENTITY

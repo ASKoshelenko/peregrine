@@ -1,0 +1,6 @@
+format: tflite
+precision: int8
+calibration_split: calibration
+calibration_images: 200
+post_quant_eval_required: true
+per_channel: true

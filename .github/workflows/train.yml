@@ -1,0 +1,24 @@
+name: train
+on:
+  workflow_dispatch:
+    inputs:
+      lane:
+        type: choice
+        options: [vertex-t4, vertex-cpu-smoke, colab-recorded]
+        default: vertex-cpu-smoke
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: train-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boundary
+        run: echo "OIDC/WIF and Vertex Custom Training slot. Not wired until GCP project peregrine exists."

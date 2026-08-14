@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+*credentials*.json
+.config/gcloud/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ML data, outputs, and caches
+/data/
+/artifacts/
+/outputs/
+/runs/
+/wandb/
+/.dvc/cache/
+/.dvc/site-cache/
+*.pt
+*.onnx
+*.tflite
+*.engine
+*.dlc
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Deliberately local notes
+docs/private/

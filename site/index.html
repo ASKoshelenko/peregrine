@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Peregrine — CV device inference MLOps</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="nav"><strong>Peregrine</strong><span>observed local run</span></nav>
+      <div class="hero__grid">
+        <div>
+          <p class="kicker">Computer-vision MLOps for device inference</p>
+          <h1>End-to-end MLOps for computer-vision device inference.</h1>
+          <p class="lede">Built around the problems device-inference teams actually have. Every number below is loaded from the observed run artifact.</p>
+        </div>
+        <img class="hero__image" src="./assets/warehouse-frame.svg" alt="Warehouse shelf with detection boxes" />
+      </div>
+      <section class="metrics" id="metrics" aria-label="Observed metrics"></section>
+    </header>
+    <main>
+      <section class="pain-grid" id="pain-grid"></section>
+      <section class="band">
+        <div>
+          <p class="kicker">Scope</p>
+          <h2>What this demo covers</h2>
+          <p class="scope-lede">One engineer, one focused build, scoped deliberately: from dataset contracts to quantized, benchmarked, release-gated device artifacts. The method notes here say exactly how each number on this page was measured.</p>
+        </div>
+        <div class="boundaries" id="boundaries"></div>
+      </section>
+      <section class="try">
+        <div>
+          <p class="kicker">Try it</p>
+          <h2>Serving contract</h2>
+          <pre><code>curl -s http://127.0.0.1:8000/healthz
+curl -s -X POST http://127.0.0.1:8000/predict \
+  -H 'content-type: application/json' \
+  -d '{"image_id":"wh-0005","target":"int8"}'</code></pre>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

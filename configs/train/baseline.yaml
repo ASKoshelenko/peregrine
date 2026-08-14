@@ -1,0 +1,10 @@
+epochs: 30
+batch: 16
+workers: 2
+device: auto
+seed: 42
+deterministic: true
+patience: 10
+optimizer: auto
+pretrained: true
+

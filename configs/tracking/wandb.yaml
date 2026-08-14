@@ -1,0 +1,7 @@
+provider: wandb
+project: peregrine-edge-mlops
+job_type: train
+mode: online
+tags: [warehouse, yolov8n, baseline]
+api_key_env: WANDB_API_KEY
+entity_env: WANDB_ENTITY

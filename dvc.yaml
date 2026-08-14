@@ -1,0 +1,9 @@
+stages:
+  observe:
+    cmd: PYTHONPATH=src python -m peregrine.cli observe --write artifacts/observed/latest.json --model-card artifacts/model-cards/peregrine-yolov8n-int8.md
+    deps:
+      - src/peregrine
+      - configs
+    outs:
+      - artifacts/observed/latest.json
+      - artifacts/model-cards/peregrine-yolov8n-int8.md

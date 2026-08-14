@@ -1,0 +1,6 @@
+name: peregrine-yolov8n
+base: yolov8n.pt
+imgsz: 640
+license_note: >-
+  Ultralytics YOLOv8 is AGPL. Acceptable for this demo; for client work evaluate
+  Apache-2.0 alternatives such as RTMDet or SSD-MobileNet.

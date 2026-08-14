@@ -1,0 +1,26 @@
+name: release
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  conversion-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_onnx_fp32, x86_tflite_int8, arm64_qemu_tflite_int8]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e '.[dev]'
+      - run: make observe
+      - run: PYTHONPATH=src python -m peregrine.cli summary artifacts/observed/latest.json --target ${{ matrix.target }}

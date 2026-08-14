@@ -1,0 +1,33 @@
+schema_version: 1
+
+meta:
+  project_id: peregrine-edge-mlops
+  region: us-central1
+  billing_account: general-trial
+  project_budget_usd: 50
+  budget_period: monthly
+  budget_thresholds: [0.25, 0.50, 0.80, 1.00]
+  budget_credit_treatment: exclude-all-credits
+  budget_verified_at: "2026-08-13"
+  workload_funding_policy: applicable-general-trial-credits-only
+  targeted_genai_credit_for_core: false
+  billing_account_upgrade_allowed: false
+
+quota:
+  accelerator: NVIDIA_TESLA_T4
+  requested_limit: 1
+  status: unavailable-unconfirmed
+  requested_at: null
+  response_at: "2026-08-14"
+  metric: aiplatform.googleapis.com/custom_model_training_nvidia_t4_gpus
+  quota_id: CustomModelTrainingT4GPUsPerProjectPerRegion
+  region_supported: true
+  effective_limit: null
+  note: >-
+    Read-only Cloud Quotas and Service Usage responses confirm that the T4 training metric
+    supports us-central1, but neither response exposes a numeric effective limit or an allocated
+    quota bucket for this project. No probe job and no quota-increase request was submitted.
+    Treat Vertex T4 as unavailable until a positive limit is independently confirmed; use Colab
+    T4 plus a bounded Vertex CPU smoke run. No trial-to-paid upgrade is authorized.
+
+runs: []

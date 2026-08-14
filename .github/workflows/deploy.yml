@@ -1,0 +1,20 @@
+name: deploy
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  cloud-run:
+    environment: demo-production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boundary
+        run: echo "Cloud Run deploy slot. Requires peregrine-deploy WIF identity and a saved model version."

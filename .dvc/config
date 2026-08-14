@@ -1,0 +1,8 @@
+[core]
+    remote = storage
+    analytics = false
+    site_cache_dir = .dvc/site-cache
+[cache]
+    dir = cache
+['remote "storage"']
+    url = gs://peregrine-edge-mlops-dvc

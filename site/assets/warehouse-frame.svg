@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Warehouse shelf frame with detection boxes">
+  <rect width="1200" height="720" fill="#101820"/>
+  <path d="M0 560h1200v160H0z" fill="#1f2933"/>
+  <path d="M80 120h1040M80 300h1040M80 480h1040" stroke="#5b677a" stroke-width="16"/>
+  <path d="M150 80v470M410 80v470M710 80v470M1010 80v470" stroke="#394553" stroke-width="14"/>
+  <rect x="185" y="150" width="160" height="110" fill="#b9a44c" opacity="0.86"/>
+  <rect x="490" y="330" width="180" height="120" fill="#8fb5a4" opacity="0.88"/>
+  <rect x="785" y="165" width="160" height="280" fill="#b67b5f" opacity="0.88"/>
+  <rect x="176" y="140" width="178" height="130" fill="none" stroke="#2ee6a6" stroke-width="5"/>
+  <rect x="480" y="322" width="200" height="136" fill="none" stroke="#66a6ff" stroke-width="5"/>
+  <rect x="775" y="154" width="180" height="302" fill="none" stroke="#ffca58" stroke-width="5"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" fill="#eff6ff">
+    <text x="176" y="132">carton 0.88</text>
+    <text x="480" y="314">tote 0.71</text>
+    <text x="775" y="146">pallet 0.76</text>
+  </g>
+</svg>
