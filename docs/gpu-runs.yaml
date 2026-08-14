@@ -59,10 +59,15 @@ runs:
     registered_at: "2026-08-14"
     max_duration_min: 30
     estimated_cost_usd: 0.25
-    started_at: null
-    ended_at: null
-    observed_cost_usd: null
-    credit_covered: null
-    local_config_fingerprint: null
-    vertex_config_fingerprint: null
-    answer: null
+    started_at: "2026-08-14T13:33:27Z"
+    ended_at: "2026-08-14T13:37:59Z"
+    observed_cost_usd: unknown
+    credit_covered: unknown
+    local_config_fingerprint: 5e345958c218a348c6e8c39691efd706341722c51453aedc94470d538aa6ad11
+    vertex_config_fingerprint: 5e345958c218a348c6e8c39691efd706341722c51453aedc94470d538aa6ad11
+    answer: >-
+      Yes. Retry CustomJob 1864582338420146176 completed one CPU-only epoch through the same
+      packaged CLI and produced a resolved-config fingerprint identical to the local fingerprint.
+      The first attempt, 3985285181702406144, is preserved as FAILED evidence of a stale derived
+      smoke-tar path; no epoch ran in that attempt. The owner explicitly waived the billing-console
+      read, so observed cost and credit coverage remain unknown rather than inferred.
