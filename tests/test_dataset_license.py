@@ -19,8 +19,8 @@ def test_committed_dataset_license_passes() -> None:
 def test_committed_label_mapping_covers_all_source_classes() -> None:
     mapping = verify_label_mapping(Path("configs/data/warehouse.yaml"))
     assert mapping["pallets"] == "pallet"
-    assert mapping["Box"] == "carton"
-    assert mapping["Barcode"] is None
+    assert mapping["pallet"] == "pallet"
+    assert mapping["boxes"] == "carton"
 
 
 def test_missing_attribution_blocks_fetch(tmp_path: Path) -> None:

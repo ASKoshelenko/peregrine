@@ -1,36 +1,32 @@
-name: warehouse-pallet-v1
+name: mamgistics-v1
 source: roboflow-universe
-workspace: industrial-inspection
-project: warehouse-pallet
+workspace: raja-sekar-mrubn
+project: mamgistics
 version: 1
-source_url: https://universe.roboflow.com/industrial-inspection/warehouse-pallet/dataset/1
-expected_images: 790
+source_url: https://universe.roboflow.com/raja-sekar-mrubn/mamgistics/dataset/1
+expected_images: 1034
 expected_split_images:
-  train: 550
-  valid: 160
-  test: 80
+  train: 945
+  valid: 78
+  test: 11
 export_format: yolov5pytorch
-classes: [Box, Carton, Barcode, Package, Damaged_Box, Open_Box, pallets]
+classes: [boxes, pallet, pallets]
 class_mapping:
-  Box: carton
-  Carton: carton
-  Barcode: null
-  Package: carton
-  Damaged_Box: carton
-  Open_Box: carton
+  boxes: carton
+  pallet: pallet
   pallets: pallet
 target_classes: [pallet, carton]
 calibration_images: 200
 smoke_train_images: 32
 smoke_valid_images: 8
-primary_candidate: warehouse-pallet-v1
+primary_candidate: mamgistics-v1
 fallback_candidate: sku-110k-subset
 contract_set: src/peregrine/dataset.py
 license_check_required: true
 license_spdx: CC-BY-4.0
 license_url: https://creativecommons.org/licenses/by/4.0/
 attribution_text: >-
-  Warehouse Pallet Dataset by Industrial Inspection, published through Roboflow Universe,
-  licensed under CC BY 4.0.
-verified_at: "2026-08-13"
+  Mamgistics Dataset by Raja Sekar, published through Roboflow Universe, licensed under
+  CC BY 4.0.
+verified_at: "2026-08-14"
 label_space_version: warehouse-assets-2-v1

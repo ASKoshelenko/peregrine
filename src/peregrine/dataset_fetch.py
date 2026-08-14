@@ -49,7 +49,12 @@ def fetch_roboflow_dataset(config_path: Path, destination: Path, api_key: str) -
 
 def fetch_from_environment(config_path: Path, destination: Path) -> Path:
     """Fetch using the local process environment without persisting the credential."""
-    return fetch_roboflow_dataset(config_path, destination, os.environ.get("ROBOFLOW_API_KEY", ""))
+    return fetch_roboflow_dataset(config_path, destination, roboflow_private_key())
+
+
+def roboflow_private_key() -> str:
+    """Read the current private-key name with legacy compatibility."""
+    return os.environ.get("ROBOFLOW_PRIVATE_API_KEY") or os.environ.get("ROBOFLOW_API_KEY", "")
 
 
 def validate_dataset_manifest(root: Path, config: dict[str, object]) -> dict[str, int]:

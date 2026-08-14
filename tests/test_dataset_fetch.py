@@ -6,6 +6,7 @@ import pytest
 from peregrine.dataset_fetch import (
     DatasetFetchError,
     _safe_extract,
+    roboflow_private_key,
     validate_dataset_manifest,
 )
 
@@ -56,3 +57,9 @@ def test_safe_extract_rejects_symlink(tmp_path: Path) -> None:
         zipped.writestr(symlink, "target")
     with pytest.raises(DatasetFetchError, match="symlink"):
         _safe_extract(archive, tmp_path / "output")
+
+
+def test_private_key_uses_official_environment_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ROBOFLOW_API_KEY", "legacy")
+    monkeypatch.setenv("ROBOFLOW_PRIVATE_API_KEY", "private")
+    assert roboflow_private_key() == "private"

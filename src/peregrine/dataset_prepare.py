@@ -136,6 +136,7 @@ def prepare_dataset(raw_root: Path, destination: Path, config_path: Path) -> Pre
         staging = Path(tmp) / "dataset"
         hashes: dict[str, str] = {}
         class_counts: Counter[str] = Counter()
+        annotation_formats: Counter[str] = Counter()
         empty_annotations = 0
         boxes = 0
         image_count = 0
@@ -162,7 +163,13 @@ def prepare_dataset(raw_root: Path, destination: Path, config_path: Path) -> Pre
                 output_image.parent.mkdir(parents=True, exist_ok=True)
                 _link_or_copy(image, output_image)
                 source_label = labels_dir / f"{image.stem}.txt"
-                remapped = _remap_label(source_label, source_names, class_mapping, target_ids)
+                remapped = _remap_label(
+                    source_label,
+                    source_names,
+                    class_mapping,
+                    target_ids,
+                    annotation_formats,
+                )
                 output_label = staging / split / "labels" / source_label.name
                 output_label.parent.mkdir(parents=True, exist_ok=True)
                 output_label.write_text("".join(remapped), encoding="utf-8")
@@ -188,6 +195,7 @@ def prepare_dataset(raw_root: Path, destination: Path, config_path: Path) -> Pre
             "boxes": boxes,
             "empty_annotations": empty_annotations,
             "class_counts": dict(sorted(class_counts.items())),
+            "source_annotation_rows": dict(sorted(annotation_formats.items())),
             "content_hashes": dict(sorted(hashes.items())),
             "calibration": calibration,
         }
@@ -218,20 +226,36 @@ def _remap_label(
     source_names: list[str],
     class_mapping: dict[str, object],
     target_ids: dict[str, int],
+    annotation_formats: Counter[str] | None = None,
 ) -> list[str]:
     output: list[str] = []
     for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         parts = raw.split()
-        if len(parts) != 5:
-            raise DatasetPreparationError(f"invalid YOLO row: {path}:{line_number}")
+        if not parts:
+            continue
         try:
             source_id = int(parts[0])
-            coordinates = [float(value) for value in parts[1:]]
+            source_coordinates = [float(value) for value in parts[1:]]
         except ValueError as error:
             raise DatasetPreparationError(f"non-numeric YOLO row: {path}:{line_number}") from error
+        if len(parts) == 5:
+            coordinates = source_coordinates
+            annotation_format = "detection"
+        elif len(parts) >= 7 and len(parts) % 2 == 1:
+            xs = source_coordinates[0::2]
+            ys = source_coordinates[1::2]
+            coordinates = [
+                (min(xs) + max(xs)) / 2,
+                (min(ys) + max(ys)) / 2,
+                max(xs) - min(xs),
+                max(ys) - min(ys),
+            ]
+            annotation_format = "polygon_converted_to_box"
+        else:
+            raise DatasetPreparationError(f"invalid YOLO row: {path}:{line_number}")
         if source_id < 0 or source_id >= len(source_names):
             raise DatasetPreparationError(f"class id out of range: {path}:{line_number}")
-        if not all(math.isfinite(value) and 0.0 <= value <= 1.0 for value in coordinates):
+        if not all(math.isfinite(value) and 0.0 <= value <= 1.0 for value in source_coordinates):
             raise DatasetPreparationError(f"box coordinate out of range: {path}:{line_number}")
         if coordinates[2] <= 0.0 or coordinates[3] <= 0.0:
             raise DatasetPreparationError(f"box has non-positive extent: {path}:{line_number}")
@@ -240,7 +264,10 @@ def _remap_label(
             continue
         if not isinstance(target, str) or target not in target_ids:
             raise DatasetPreparationError(f"unknown target class mapping: {target}")
-        output.append(f"{target_ids[target]} {' '.join(parts[1:])}\n")
+        if annotation_formats is not None:
+            annotation_formats[annotation_format] += 1
+        encoded = " ".join(format(value, ".17g") for value in coordinates)
+        output.append(f"{target_ids[target]} {encoded}\n")
     return output
 
 

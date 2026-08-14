@@ -77,6 +77,19 @@ def test_prepare_rejects_invalid_box(tmp_path: Path) -> None:
         prepare_dataset(raw, tmp_path / "processed", _config(tmp_path / "config.yaml"))
 
 
+def test_prepare_converts_segmentation_polygon_to_box(tmp_path: Path) -> None:
+    raw = _fixture(tmp_path / "raw")
+    (raw / "train/labels/train.txt").write_text(
+        "2 0.1 0.2 0.5 0.2 0.5 0.8 0.1 0.8\n", encoding="utf-8"
+    )
+    prepared = prepare_dataset(raw, tmp_path / "processed", _config(tmp_path / "config.yaml"))
+    row = (prepared.root / "train/labels/train.txt").read_text(encoding="utf-8").split()
+    assert row[0] == "0"
+    assert [float(value) for value in row[1:]] == pytest.approx([0.3, 0.5, 0.4, 0.6])
+    manifest = yaml.safe_load((prepared.root / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_annotation_rows"]["polygon_converted_to_box"] == 1
+
+
 def test_prepare_rejects_corrupt_image(tmp_path: Path) -> None:
     raw = _fixture(tmp_path / "raw")
     (raw / "valid/images/valid.jpg").write_bytes(b"not-an-image")
