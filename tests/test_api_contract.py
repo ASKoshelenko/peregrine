@@ -13,6 +13,7 @@ from peregrine.inference import DetectionResult, InferenceResult
 
 def test_healthz_contract():
     assert healthz()["ok"] is True
+    assert {route.path for route in api.app.routes} >= {"/healthz", "/api/healthz"}
 
 
 def test_predict_returns_lineage_and_detections():

@@ -83,6 +83,7 @@ _detector: OnnxDetector | None = None
 
 
 @app.get("/healthz")
+@app.get("/api/healthz")
 def healthz() -> dict[str, object]:
     """Return liveness and the contract boundary."""
     return {
