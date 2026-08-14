@@ -73,7 +73,12 @@ def materialize_calibration_dataset(
         names = _source_names(source / "data.yaml")
         (staging / "data.yaml").write_text(
             yaml.safe_dump(
-                {"path": ".", "train": "images", "val": "images", "names": dict(enumerate(names))},
+                {
+                    "path": str(destination),
+                    "train": "images",
+                    "val": "images",
+                    "names": dict(enumerate(names)),
+                },
                 sort_keys=False,
             ),
             encoding="utf-8",
@@ -156,7 +161,7 @@ def prepare_smoke_dataset(
         (staging / "data.yaml").write_text(
             yaml.safe_dump(
                 {
-                    "path": ".",
+                    "path": str(destination),
                     "train": "train/images",
                     "val": "valid/images",
                     "names": dict(enumerate(targets)),
@@ -265,7 +270,7 @@ def prepare_dataset(raw_root: Path, destination: Path, config_path: Path) -> Pre
         (staging / "data.yaml").write_text(
             yaml.safe_dump(
                 {
-                    "path": ".",
+                    "path": str(destination),
                     "train": "train/images",
                     "val": "valid/images",
                     "test": "test/images",

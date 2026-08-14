@@ -57,6 +57,8 @@ def test_prepare_remaps_and_fingerprints_dataset(tmp_path: Path) -> None:
     assert prepared.boxes == 3
     assert prepared.empty_annotations == 0
     assert len(prepared.fingerprint) == 64
+    data_config = yaml.safe_load((prepared.root / "data.yaml").read_text(encoding="utf-8"))
+    assert data_config["path"] == str(prepared.root)
     assert (prepared.root / "train/labels/train.txt").read_text(encoding="utf-8").startswith("0 ")
     assert (prepared.root / "valid/labels/valid.txt").read_text(encoding="utf-8").startswith("1 ")
     assert "1 0.4" not in (prepared.root / "test/labels/test.txt").read_text(encoding="utf-8")
