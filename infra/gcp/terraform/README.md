@@ -1,7 +1,7 @@
 # Peregrine GCP foundation
 
-This root declares the minimal storage foundation for dataset lineage and observed ML artifacts.
-It does not create compute, GPUs, Vertex jobs, endpoints, or always-on services.
+This root declares the storage foundation plus the public, scale-to-zero inference surface.
+It creates no GPUs, Vertex endpoints, or always-on services.
 
 Safety properties:
 
@@ -14,6 +14,9 @@ Safety properties:
 - noncurrent versions expire after 30 days to bound credit usage;
 - `force_destroy=false` and `prevent_destroy=true` protect evidence from accidental deletion;
 - no credentials, billing account identifiers, or Terraform state are committed.
+- the Cloud Run service is created only for a digest-pinned image, runs as an unprivileged
+  identity with no project roles, and is bounded to one scale-to-zero CPU instance;
+- Artifact Registry removes untagged images after seven days.
 
 Review-only workflow:
 

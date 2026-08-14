@@ -6,6 +6,11 @@ warehouse dataset to a quantized, benchmarked, release-gated device model.**
 A peregrine falcon is what nature built when it optimized vision for speed, which is
 literally what quantization for device inference is.
 
+**Live demo:** [peregrine.devopsdive.com](https://peregrine.devopsdive.com/) — change
+release budgets to see the gate accept or refuse a scenario, then upload a JPEG, PNG,
+or WebP image for real ONNX Runtime inference. Images are decoded and processed only in
+memory and are not retained.
+
 ## What this demo covers
 
 One engineer, one focused build, scoped deliberately: dataset contracts and versioned
@@ -19,7 +24,11 @@ and an explicit banner — it never invents numbers.
 
     make observe   # offline evidence pipeline: metrics, gates, model card
     make check     # ruff + mypy strict + pytest
-    make site      # serve the demo site on 127.0.0.1
+    make site      # serve the evidence-only frontend on 127.0.0.1
+
+The production container serves the site and live API together. It bundles a
+fingerprint-verified ONNX model, runs as a non-root user, and is deployed by Terraform
+to a one-instance, CPU-only Cloud Run service with `min_instances=0`.
 
 The dataset lane is license-gated and requires a local Roboflow credential that is never
 committed:

@@ -1,45 +1,74 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Peregrine — CV device inference MLOps</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <header class="hero">
-      <nav class="nav"><strong>Peregrine</strong><span>observed local run</span></nav>
-      <div class="hero__grid">
-        <div>
-          <p class="kicker">Computer-vision MLOps for device inference</p>
-          <h1>End-to-end MLOps for computer-vision device inference.</h1>
-          <p class="lede">Built around the problems device-inference teams actually have. Every number below is loaded from the observed run artifact.</p>
-        </div>
-        <img class="hero__image" src="./assets/warehouse-frame.svg" alt="Warehouse shelf with detection boxes" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#08120f" />
+  <meta name="description" content="Put a warehouse detector through its release gates, trace every observed number, and run the model on your own image." />
+  <meta property="og:title" content="Peregrine — qualify a vision model for the edge" />
+  <meta property="og:description" content="A live computer-vision MLOps release bench: evidence, gates, device targets, and real image inference." />
+  <title>Peregrine — qualify a vision model for the edge</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the release bench</a>
+  <header class="topbar">
+    <a class="wordmark" href="#top" aria-label="Peregrine home"><span aria-hidden="true">P/</span> Peregrine</a>
+    <nav aria-label="Story sections"><a href="#gate-lab">Gate lab</a><a href="#detector">Detector</a><a href="#trace">Trace</a><a href="#fleet">Fleet</a></nav>
+    <a class="repo-link" href="https://github.com/ASKoshelenko/peregrine">Source ↗</a>
+  </header>
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Warehouse CV · release qualification bench</p>
+        <h1 id="hero-title">A model is not ready when training stops.</h1>
+        <p class="hero-lede">It is ready when conversion, device latency, artifact size and lineage can all say <em>yes</em>—and the system can explain a <em>no</em>.</p>
+        <div class="hero-actions"><a class="button button-primary" href="#gate-lab">Explore a release decision</a><a class="button button-secondary" href="#detector">Try the detector</a></div>
+        <p class="evidence-stamp" id="evidence-stamp" aria-live="polite">Loading observed run evidence…</p>
       </div>
-      <section class="metrics" id="metrics" aria-label="Observed metrics"></section>
-    </header>
-    <main>
-      <section class="pain-grid" id="pain-grid"></section>
-      <section class="band">
-        <div>
-          <p class="kicker">Scope</p>
-          <h2>What this demo covers</h2>
-          <p class="scope-lede">One engineer, one focused build, scoped deliberately: from dataset contracts to quantized, benchmarked, release-gated device artifacts. The method notes here say exactly how each number on this page was measured.</p>
+      <div class="qualification" aria-label="Model qualification sequence">
+        <div class="qualification-head"><span>QUALIFICATION / LIVE EVIDENCE</span><span id="hero-verdict">—</span></div>
+        <ol>
+          <li><span>01</span><b>Checkpoint</b><small>best.pt</small></li>
+          <li><span>02</span><b>Convert</b><small>ONNX → INT8</small></li>
+          <li><span>03</span><b>Measure</b><small>x86 + ARM64</small></li>
+          <li><span>04</span><b>Gate</b><small>Q1—Q5</small></li>
+          <li class="qualification-final"><span>05</span><b>Promote</b><small>only if every gate passes</small></li>
+        </ol>
+      </div>
+      <div class="metrics" id="metrics" aria-label="Observed metrics"></div>
+    </section>
+    <section class="chapter" id="gate-lab" aria-labelledby="gate-title">
+      <header class="chapter-head"><p class="eyebrow">01 · The decision</p><h2 id="gate-title">Make the release system say no.</h2><p>Change a hypothetical budget. The observed measurements stay fixed; only your scenario changes.</p></header>
+      <div class="lab-shell">
+        <aside class="scenario-panel"><div class="panel-label">Scenario controls</div><div id="gate-controls"></div><label class="lineage-toggle"><input id="lineage-toggle" type="checkbox" checked /> Dataset lineage is present</label><button class="button button-secondary" id="reset-gates" type="button">Reset to observed release</button><p class="boundary-note">Hypothetical simulation. It does not change committed budgets, artifacts or the model registry.</p></aside>
+        <div class="gate-stage"><div class="verdict-card" id="scenario-verdict" aria-live="polite"><span>Scenario simulation</span><strong>—</strong><p>Waiting for evidence.</p></div><div class="gate-list" id="gate-list"></div></div>
+      </div>
+    </section>
+    <section class="chapter detector-chapter" id="detector" aria-labelledby="detector-title">
+      <header class="chapter-head"><p class="eyebrow">02 · The model, in your hands</p><h2 id="detector-title">Bring a warehouse frame.</h2><p>The image goes to the live scale-to-zero ONNX API, is processed in memory and is not retained.</p></header>
+      <div class="detector-shell">
+        <div class="drop-column">
+          <label class="dropzone" id="dropzone" for="image-input"><input id="image-input" type="file" accept="image/jpeg,image/png,image/webp" /><span class="drop-mark" aria-hidden="true">⌁</span><strong>Drop an image or choose a file</strong><small>JPEG, PNG or WebP · maximum 5 MiB</small></label>
+          <div class="confidence-control"><label for="confidence">Confidence threshold <output id="confidence-output">0.25</output></label><input id="confidence" type="range" min="0.05" max="0.95" step="0.05" value="0.25" /></div>
+          <button class="button button-primary" id="run-inference" type="button" disabled>Run live inference</button><p class="inference-status" id="inference-status" aria-live="polite">Choose an image to begin.</p>
         </div>
-        <div class="boundaries" id="boundaries"></div>
-      </section>
-      <section class="try">
-        <div>
-          <p class="kicker">Try it</p>
-          <h2>Serving contract</h2>
-          <pre><code>curl -s http://127.0.0.1:8000/healthz
-curl -s -X POST http://127.0.0.1:8000/predict \
-  -H 'content-type: application/json' \
-  -d '{"image_id":"wh-0005","target":"int8"}'</code></pre>
-        </div>
-      </section>
-    </main>
-    <script type="module" src="./app.js"></script>
-  </body>
+        <div class="canvas-panel"><div class="canvas-empty" id="canvas-empty">Your frame and detections appear here.</div><div class="image-stage" id="image-stage" hidden><img id="preview-image" alt="Uploaded warehouse frame" /><svg id="boxes" aria-hidden="true"></svg></div></div>
+        <aside class="result-panel"><div class="panel-label">Live response</div><dl id="runtime-facts"><div><dt>Runtime</dt><dd>—</dd></div><div><dt>Model</dt><dd>—</dd></div><div><dt>Request time</dt><dd>—</dd></div></dl><div id="detection-list" class="detection-list"><p>No detections yet.</p></div><p class="boundary-note">Per-request time is interactive timing on Cloud Run, not the controlled benchmark p95.</p></aside>
+      </div>
+    </section>
+    <section class="chapter" id="trace" aria-labelledby="trace-title"><header class="chapter-head"><p class="eyebrow">03 · The evidence chain</p><h2 id="trace-title">Every parent of the verdict, on screen.</h2><p>Open any link in the chain to see the full immutable identifier behind the short label.</p></header><div class="trace-chain" id="trace-chain"></div></section>
+    <section class="chapter" id="fleet" aria-labelledby="fleet-title"><header class="chapter-head"><p class="eyebrow">04 · The fleet</p><h2 id="fleet-title">One model. Different runtime consequences.</h2><p>Reference and trend lanes stay visibly separate; ARM64 container timing is not presented as physical-device latency.</p></header><div class="fleet-table-wrap"><table class="fleet-table"><thead><tr><th>Target</th><th>Lane</th><th>Quality</th><th>p50</th><th>p95</th><th>Size</th></tr></thead><tbody id="fleet-body"></tbody></table></div></section>
+    <section class="chapter pains" id="story" aria-labelledby="story-title"><header class="chapter-head"><p class="eyebrow">05 · Why this exists</p><h2 id="story-title">Six failure modes, one operating model.</h2></header><div id="pain-list"></div></section>
+    <section class="chapter method" id="method" aria-labelledby="method-title">
+      <header class="chapter-head"><p class="eyebrow">06 · Method and scope</p><h2 id="method-title">What this demo proves.</h2><p>Observed numbers come from versioned artifacts. Missing evidence renders a dash, never a convenient fallback.</p></header>
+      <div class="method-grid"><div id="boundaries"></div><div class="api-card"><div class="panel-label">Developer contract</div><pre><code>curl -s https://peregrine.devopsdive.com/healthz
+curl --data-binary @warehouse.jpg -H 'Content-Type: image/jpeg' \
+  'https://peregrine.devopsdive.com/api/predict?confidence=0.25'</code></pre><a href="https://github.com/ASKoshelenko/peregrine/tree/main/docs/adr">Read the architecture decisions ↗</a></div></div>
+    </section>
+  </main>
+  <footer><span>Peregrine · observed evidence, not a slide deck</span><span id="footer-run">run —</span></footer>
+  <div class="mobile-actions"><a href="#gate-lab">Gate lab</a><a href="#detector">Try detector</a></div>
+  <script type="module" src="./app.js"></script>
+</body>
 </html>
