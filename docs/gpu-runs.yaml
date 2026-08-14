@@ -39,8 +39,11 @@ runs:
     registered_at: "2026-08-14"
     max_duration_min: 120
     estimated_cost_usd: 0
-    started_at: null
-    ended_at: null
-    observed_cost_usd: null
-    credit_covered: null
-    answer: null
+    started_at: "2026-08-14T11:06:55Z"
+    ended_at: "2026-08-14T11:15:40Z"
+    observed_cost_usd: 0
+    credit_covered: false
+    answer: >-
+      The held-out 11-image, 196-instance test split reached mAP@0.50 0.9872 and
+      mAP@0.50:0.95 0.8327. Conversion must consume the best checkpoint with SHA-256
+      27f44fd8b3028975111c4a8de03ea22a43482f389a1ada7166c8a4ebc0f4cf64.

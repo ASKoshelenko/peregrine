@@ -17,6 +17,7 @@ def test_training_dry_run_materializes_lineage(tmp_path: Path) -> None:
     assert prepared.arguments["batch"] == 2
     assert prepared.arguments["device"] == "cpu"
     assert prepared.arguments["model"] == "yolov8n.pt"
+    assert prepared.arguments["project"] == str((tmp_path / "run").resolve())
     assert prepared.tracking.project == "peregrine-edge-mlops"
 
 

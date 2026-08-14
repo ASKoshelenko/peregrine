@@ -55,7 +55,9 @@ def prepare_training_run(
         "deterministic": train["deterministic"],
         "patience": train["patience"],
         "optimizer": train["optimizer"],
-        "project": str(run_dir),
+        # Ultralytics prefixes relative projects with its global runs directory.
+        # An absolute path keeps the lineage contract and checkpoints together.
+        "project": str(run_dir.resolve()),
         "name": run["name"],
         "exist_ok": False,
     }
