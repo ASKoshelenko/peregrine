@@ -1,21 +1,26 @@
+import { loadPlatformEventModel } from "./components/platform-event-model.js";
+import { registerPwaShell } from "./components/pwa-shell.js";
+
 const EVIDENCE_URL = "/artifacts/observed/latest.json";
 const API_BASE = window.PEREGRINE_API_BASE || "";
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const translations = {
   en: {
-    skip: "Skip to the release bench", navPlatform: "Platform", navPipeline: "Pipeline", navGate: "Gate lab", navDetector: "Detector", navOps: "Operations", source: "Source ↗",
+    skip: "Skip to the release bench", navPlatform: "Platform", navPipeline: "Pipeline", navControl: "Control room", navGate: "Gate lab", navDetector: "Detector", navOps: "Evidence", source: "Source ↗",
     heroEyebrow: "Platform engineering · MLOps · edge inference", heroTitle: "I did not deploy a model. I built the system that decides if it deserves deployment.", heroLede: "Dataset lineage, reproducible training, target-specific conversion, release gates, immutable infrastructure and a live service form one <em>operating model</em>.", heroPrimary: "Walk the platform", heroSecondary: "Run the product", qualificationLabel: "PLATFORM / LIVE EVIDENCE", qData: "Version data", qTrain: "Train & track", qQualify: "Qualify targets", qGate: "Enforce policy", qServe: "Serve safely",
     platformEyebrow: "01 · The platform under the model", platformTitle: "Follow one artifact through the whole system.", platformLead: "Select a layer. The map shows what it owns, what it emits, and which engineering control prevents a quiet failure.", layerSource: "Source & contract", layerData: "Data plane", layerTrain: "Experiment plane", layerQualify: "Qualification plane", layerRelease: "Release control", layerServe: "Serving plane", ownershipLabel: "What I owned end to end", ownershipValue: "Architecture · IaC · MLOps contracts · security boundaries · cost controls · product UX · production verification",
     pipelineEyebrow: "02 · Delivery, not a notebook", pipelineTitle: "Every transition leaves proof.", pipelineLead: "The pipeline is an evidence conveyor: each stage consumes pinned parents, emits an immutable artifact and may stop the release.", legendArtifact: "artifact", legendControl: "control", legendEvidence: "evidence",
+    controlEyebrow: "03 · Platform control room", controlTitle: "Watch the system build its own proof.", controlLead: "Replay the recorded, evidence-backed release. Live state is polled from production; defined automation is never presented as executed.", truthLive: "queried now", truthRecorded: "real retained run", truthDefined: "automation contract", replayRun: "Replay real release", replayBoundary: "No compute is started. This replays retained evidence.", automationTitle: "Automation surfaces", infraTitle: "Infrastructure creation and request path", infraProvision: "End-to-end build", infraRuntime: "Runtime request", buildPlatform: "Build the platform",
     gateEyebrow: "03 · Policy as executable code", gateTitle: "Make the release system say no.", gateLead: "Change a hypothetical budget. The observed measurements stay fixed; only your scenario changes.", detectorEyebrow: "04 · The product, in your hands", detectorTitle: "Bring a warehouse frame.", detectorLead: "The image goes to the live scale-to-zero ONNX API, is processed in memory and is not retained.", traceEyebrow: "05 · Evidence, not confidence", traceTitle: "Every parent of the verdict, on screen.", traceLead: "Open any link in the chain to see the full immutable identifier behind the short label.", fleetEyebrow: "06 · One model, several runtimes", fleetTitle: "The target is part of the release.", fleetLead: "Reference and trend lanes stay visibly separate; ARM64 container timing is not presented as physical-device latency.", thTarget: "Target", thLane: "Lane", thQuality: "Quality", thSize: "Size",
     opsEyebrow: "07 · Production posture", opsTitle: "Cheap when idle. Bounded when busy. Explainable always.", opsLead: "Platform engineering is the set of constraints that remain true after the demo ends.", opsIdentityTitle: "No ambient project power", opsIdentityBody: "The runtime service account has no project roles. The model is bundled and fingerprint-checked at startup.", opsSupplyTitle: "Digest, not a mutable tag", opsSupplyBody: "Terraform pins the exact container digest. Artifact Registry deletes untagged images after seven days.", opsCostTitle: "Scale 0 → 1, never beyond", opsCostBody: "One CPU, 1 GiB, concurrency four, request-only CPU and no always-on instance.", opsFailureTitle: "Fail closed at every seam", opsFailureBody: "Model hash mismatch blocks readiness; missing evidence renders a dash; failed gates block promotion.", storyEyebrow: "08 · Why this exists", storyTitle: "Six failure modes, one operating model.", methodEyebrow: "09 · Method and scope", methodTitle: "What this system proves.", methodLead: "Observed numbers come from versioned artifacts. Missing evidence renders a dash, never a convenient fallback.", returnPlatform: "Return to the platform map ↑", backToTop: "Top", footer: "Peregrine · a platform story backed by running evidence", mobilePlatform: "Platform", mobileTry: "Try detector",
   },
   uk: {
-    skip: "Перейти до платформи", navPlatform: "Платформа", navPipeline: "Пайплайн", navGate: "Релізний гейт", navDetector: "Детектор", navOps: "Експлуатація", source: "Код ↗",
+    skip: "Перейти до платформи", navPlatform: "Платформа", navPipeline: "Пайплайн", navControl: "Control room", navGate: "Релізний гейт", navDetector: "Детектор", navOps: "Докази", source: "Код ↗",
     heroEyebrow: "Platform engineering · MLOps · edge inference", heroTitle: "Я не просто розгорнув модель. Я побудував систему, яка вирішує, чи заслуговує вона на реліз.", heroLede: "Походження даних, відтворюване навчання, конвертація під ціль, релізні гейти, незмінна інфраструктура й живий сервіс утворюють одну <em>операційну модель</em>.", heroPrimary: "Пройти платформу", heroSecondary: "Запустити продукт", qualificationLabel: "ПЛАТФОРМА / ЖИВІ ДОКАЗИ", qData: "Версіонувати дані", qTrain: "Навчити й відстежити", qQualify: "Перевірити цілі", qGate: "Застосувати політику", qServe: "Безпечно обслуговувати",
     platformEyebrow: "01 · Платформа під моделлю", platformTitle: "Пройдіть шлях одного артефакту крізь усю систему.", platformLead: "Оберіть шар. Карта покаже, чим він володіє, що випускає і який інженерний контроль не дає помилці пройти непомітно.", layerSource: "Код і контракт", layerData: "Контур даних", layerTrain: "Контур експериментів", layerQualify: "Контур кваліфікації", layerRelease: "Релізний контроль", layerServe: "Контур обслуговування", ownershipLabel: "За що я відповідав end to end", ownershipValue: "Архітектура · IaC · MLOps-контракти · межі безпеки · контроль вартості · UX продукту · production verification",
     pipelineEyebrow: "02 · Поставка, а не ноутбук", pipelineTitle: "Кожен перехід залишає доказ.", pipelineLead: "Пайплайн — це конвеєр доказів: кожен етап споживає зафіксованих батьків, випускає незмінний артефакт і може зупинити реліз.", legendArtifact: "артефакт", legendControl: "контроль", legendEvidence: "доказ",
+    controlEyebrow: "03 · Центр керування платформою", controlTitle: "Подивіться, як система будує власний доказ.", controlLead: "Відтворіть реальний збережений реліз. Live-стан опитується з production, а визначена автоматизація ніколи не видається за виконану.", truthLive: "опитано зараз", truthRecorded: "реальний збережений run", truthDefined: "контракт автоматизації", replayRun: "Відтворити реальний реліз", replayBoundary: "Новий compute не запускається. Це replay збережених доказів.", automationTitle: "Контури автоматизації", infraTitle: "Створення інфраструктури та шлях запиту", infraProvision: "End-to-end build", infraRuntime: "Runtime-запит", buildPlatform: "Побудувати платформу",
     gateEyebrow: "03 · Політика як виконуваний код", gateTitle: "Змусьте релізну систему сказати «ні».", gateLead: "Змініть гіпотетичний бюджет. Виміряні значення залишаються незмінними — змінюється лише ваш сценарій.", detectorEyebrow: "04 · Продукт у ваших руках", detectorTitle: "Завантажте кадр зі складу.", detectorLead: "Зображення йде до живого ONNX API зі scale-to-zero, обробляється в памʼяті й не зберігається.", traceEyebrow: "05 · Докази замість упевненості", traceTitle: "Кожен предок вердикту — на екрані.", traceLead: "Розкрийте будь-яку ланку, щоб побачити повний незмінний ідентифікатор.", fleetEyebrow: "06 · Одна модель, кілька runtime", fleetTitle: "Цільова платформа — частина релізу.", fleetLead: "Еталонні й трендові контури розділені; ARM64 container timing не видається за latency фізичного пристрою.", thTarget: "Ціль", thLane: "Контур", thQuality: "Якість", thSize: "Розмір",
     opsEyebrow: "07 · Production posture", opsTitle: "Дешево у спокої. Обмежено під навантаженням. Пояснювано завжди.", opsLead: "Platform engineering — це набір обмежень, які залишаються правдивими після завершення демо.", opsIdentityTitle: "Жодної фонової влади над проєктом", opsIdentityBody: "Runtime service account не має project roles. Модель вбудована й перевіряється за fingerprint під час старту.", opsSupplyTitle: "Digest, а не змінний тег", opsSupplyBody: "Terraform фіксує точний digest контейнера. Artifact Registry видаляє untagged images через сім днів.", opsCostTitle: "Scale 0 → 1, і ніколи вище", opsCostBody: "Один CPU, 1 GiB, concurrency чотири, CPU лише під час запиту й жодного постійного інстансу.", opsFailureTitle: "Fail closed на кожному шві", opsFailureBody: "Невірний hash моделі блокує readiness; відсутній доказ дає тире; провалений гейт блокує promotion.", storyEyebrow: "08 · Навіщо це існує", storyTitle: "Шість режимів відмови, одна операційна модель.", methodEyebrow: "09 · Метод і межі", methodTitle: "Що доводить ця система.", methodLead: "Виміряні числа приходять із версіонованих артефактів. Відсутній доказ дає тире, а не зручну підстановку.", returnPlatform: "Повернутися до карти платформи ↑", backToTop: "Вгору", footer: "Peregrine · історія платформи, підтверджена працюючими доказами", mobilePlatform: "Платформа", mobileTry: "Спробувати",
   },
@@ -79,8 +84,47 @@ const pipelineStages = {
   ],
 };
 
+const automation = {
+  en: [
+    ["PR quality", "PR / manual", "DEFINED", "ruff → format → mypy → pytest → observe", "Executable CI; intentionally not triggered on main push."],
+    ["Model qualification", "recorded run", "RECORDED", "data → train → convert → measure → Q1—Q5", "Real retained evidence from the judged release."],
+    ["Target matrix", "manual release", "DEFINED", "ONNX FP32 ∥ TFLite INT8 ∥ ARM64 trend", "Matrix definition exists; no empty Actions run was spent."],
+    ["Production rollout", "reviewed apply", "LIVE", "build → registry digest → Terraform plan → Cloud Run", "The running revision is joined below from production."],
+  ],
+  uk: [
+    ["Якість PR", "PR / вручну", "DEFINED", "ruff → format → mypy → pytest → observe", "Виконуваний CI; навмисно не запускається на main push."],
+    ["Кваліфікація моделі", "збережений run", "RECORDED", "data → train → convert → measure → Q1—Q5", "Реальні збережені докази оціненого релізу."],
+    ["Матриця цілей", "ручний release", "DEFINED", "ONNX FP32 ∥ TFLite INT8 ∥ ARM64 trend", "Matrix визначена; порожні хвилини Actions не витрачалися."],
+    ["Production rollout", "reviewed apply", "LIVE", "build → registry digest → Terraform plan → Cloud Run", "Поточна revision приєднується нижче безпосередньо з production."],
+  ],
+};
+
+const infraViews = {
+  en: {
+    provision: {
+      nodes: [["00", "Product contract", "questions + budgets"], ["01", "GCP project", "cost boundary"], ["02", "APIs + identity", "least privilege"], ["03", "GCS + DVC", "versioned data"], ["04", "Dataset gate", "790 images · 2 classes"], ["05", "Colab T4 + W&B", "tracked baseline"], ["06", "Conversion", "ONNX + INT8"], ["07", "Target matrix", "quality · p95 · size"], ["08", "Release Q1—Q5", "PROMOTE / BLOCK"], ["09", "Container + Registry", "immutable digest"], ["10", "Cloud Run", "0 → 1 instance"], ["11", "DNS + TLS + PWA", "live product"]],
+      caption: "This is the recorded construction order: every node consumes the previous contract and emits a verifiable parent for the next one.",
+    },
+    runtime: {
+      nodes: [["01", "Browser / PWA", "image bytes"], ["02", "Azure DNS", "CNAME"], ["03", "Google Frontend", "TLS"], ["04", "Cloud Run", "request CPU"], ["05", "ONNX Runtime", "verified model"], ["06", "Evidence response", "boxes + lineage"]],
+      caption: "The upload is decoded and inferred in memory. No image is retained; scale-to-zero and max one instance bound idle and abuse cost.",
+    },
+  },
+  uk: {
+    provision: {
+      nodes: [["00", "Контракт продукту", "питання + бюджети"], ["01", "GCP project", "межа вартості"], ["02", "API + identity", "least privilege"], ["03", "GCS + DVC", "версійовані дані"], ["04", "Dataset gate", "790 images · 2 класи"], ["05", "Colab T4 + W&B", "tracked baseline"], ["06", "Конвертація", "ONNX + INT8"], ["07", "Target matrix", "якість · p95 · size"], ["08", "Release Q1—Q5", "PROMOTE / BLOCK"], ["09", "Container + Registry", "незмінний digest"], ["10", "Cloud Run", "0 → 1 instance"], ["11", "DNS + TLS + PWA", "живий продукт"]],
+      caption: "Це зафіксований порядок побудови: кожен вузол споживає попередній контракт і випускає перевірюваного батька для наступного.",
+    },
+    runtime: {
+      nodes: [["01", "Browser / PWA", "байти image"], ["02", "Azure DNS", "CNAME"], ["03", "Google Frontend", "TLS"], ["04", "Cloud Run", "CPU на запит"], ["05", "ONNX Runtime", "перевірена модель"], ["06", "Evidence response", "boxes + lineage"]],
+      caption: "Upload декодується й обробляється в памʼяті. Image не зберігається; scale-to-zero і max one instance обмежують idle та abuse cost.",
+    },
+  },
+};
+
 let evidence;
 let platformState;
+let platformEvents;
 let selectedFile;
 let previewUrl;
 const $ = (selector) => document.querySelector(selector);
@@ -114,6 +158,8 @@ function applyLanguage() {
   document.title = language === "en" ? "Peregrine — the platform that qualifies an edge model" : "Peregrine — платформа, що кваліфікує edge-модель";
   renderPlatform(activeLayer);
   renderPipeline();
+  renderAutomation();
+  renderInfra(document.querySelector("[data-infra-view][aria-selected='true']")?.dataset.infraView || "provision");
   renderPains();
   if (evidence) renderEvidence(evidence);
 }
@@ -140,6 +186,113 @@ function renderPipeline() {
     $("#pipeline-flow").querySelectorAll("button").forEach((item) => item.setAttribute("aria-expanded", "false"));
     button.setAttribute("aria-expanded", String(!expanded));
   }));
+}
+
+function renderAutomation() {
+  $("#automation-list").innerHTML = automation[language].map(([name, trigger, state, flow, note]) => {
+    const liveDetail = state === "LIVE" && platformState ? `${platformState.revision} · ${short(platformState.image_digest)}` : trigger;
+    return `<article class="automation-row"><div><span class="truth-${state.toLowerCase()}">${state}</span><b>${name}</b></div><code>${flow}</code><p>${note}</p><small>${liveDetail}</small></article>`;
+  }).join("");
+}
+
+function renderInfra(view) {
+  const selected = {...infraViews[language][view]};
+  if (view === "provision" && platformEvents) selected.nodes = platformEvents.events.map((event, index) => [String(index).padStart(2, "0"), event.resource, event.evidence]);
+  document.querySelectorAll("[data-infra-view]").forEach((button) => button.setAttribute("aria-selected", String(button.dataset.infraView === view)));
+  $("#infra-canvas").innerHTML = selected.nodes.map(([step, name, proof], index) => `<button type="button" class="infra-node" data-infra-index="${index}"><span>${step}</span><b>${name}</b><small>${proof}</small>${index < selected.nodes.length - 1 ? '<i aria-hidden="true">→</i>' : ""}</button>`).join("");
+  const live = platformState ? ` ${language === "en" ? "Live revision" : "Жива revision"}: ${platformState.revision}; ${platformState.cpu} CPU / ${platformState.memory}; ${platformState.min_instances}→${platformState.max_instances}.` : "";
+  $("#infra-caption").textContent = selected.caption + live;
+  $("#infra-canvas").querySelectorAll(".infra-node").forEach((node) => node.addEventListener("click", () => {
+    $("#infra-canvas").querySelectorAll(".infra-node").forEach((item) => item.classList.remove("is-active"));
+    node.classList.add("is-active");
+    const event = view === "provision" ? platformEvents?.events[Number(node.dataset.infraIndex)] : null;
+    const [, name, proof] = selected.nodes[Number(node.dataset.infraIndex)];
+    $("#infra-caption").textContent = event ? `${event.action}. ${language === "en" ? "Control" : "Контроль"}: ${event.control}. ${language === "en" ? "Depends on" : "Залежить від"}: ${event.depends_on.join(", ") || "—"}.` : `${name} — ${proof}. ${selected.caption}${live}`;
+  }));
+}
+
+let buildTimer;
+function buildPlatformReplay() {
+  clearInterval(buildTimer);
+  renderInfra("provision");
+  const nodes = [...$("#infra-canvas").querySelectorAll(".infra-node")];
+  const button = $("#build-platform");
+  const body = $("#console-body");
+  body.innerHTML = "";
+  nodes.forEach((node) => node.classList.remove("is-active", "is-complete"));
+  button.disabled = true;
+  let index = 0;
+  const advance = () => {
+    const node = nodes[index];
+    if (index > 0) nodes[index - 1].classList.replace("is-active", "is-complete");
+    node.classList.add("is-active");
+    const title = node.querySelector("b").textContent;
+    const proof = node.querySelector("small").textContent;
+    body.insertAdjacentHTML("beforeend", `<div class="console-line console-ok"><span>✓</span><code>[${node.querySelector("span").textContent}] ${title} · ${proof}</code></div>`);
+    body.scrollTop = body.scrollHeight;
+    $("#infra-caption").textContent = `${language === "en" ? "Building" : "Будуємо"}: ${title} — ${proof}`;
+    index += 1;
+    if (index === nodes.length) {
+      node.classList.replace("is-active", "is-complete");
+      clearInterval(buildTimer);
+      button.disabled = false;
+      $("#infra-caption").textContent = `${infraViews[language].provision.caption} ${platformState ? `${language === "en" ? "Result" : "Результат"}: ${platformState.service}/${platformState.revision}.` : ""}`;
+    }
+  };
+  advance();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) while (index < nodes.length) advance();
+  else buildTimer = setInterval(advance, 520);
+}
+
+function recordedConsoleLines() {
+  if (!evidence) return [["warn", language === "en" ? "Observed evidence is unavailable." : "Виміряні докази недоступні."]];
+  const target = evidence.targets.x86_tflite_int8;
+  const verdict = evidence.release_verdict.passed ? "PROMOTE" : "BLOCK";
+  return [
+    ["cmd", `$ make release RUN=${evidence.run_id}`],
+    ["ok", `[data] fingerprint ${short(evidence.lineage.dataset_fingerprint)}`],
+    ["ok", `[train] run ${evidence.run_id}`],
+    ["ok", `[convert] ONNX + INT8 · calibration ${short(evidence.lineage.calibration_hash)}`],
+    ["ok", `[measure] x86_tflite_int8 · p95 ${fmt(target.p95_ms)} ms · ${fmt(target.size_mb, 2)} MB`],
+    ...evidence.release_verdict.gates.map((gate) => [gate.status === "pass" ? "ok" : "fail", `[${gate.gate_id}] ${gate.status.toUpperCase()} · ${gate.measured} ≤ ${gate.budget}`]),
+    [verdict === "PROMOTE" ? "promote" : "fail", `[release] ${verdict} · evidence ${short(evidence.fingerprint)}`],
+    ["live", `[serve] ${platformState ? `${platformState.service}/${platformState.revision}` : "production identity unavailable"}`],
+  ];
+}
+
+function activateWorkspace(targetId, updateHistory = false) {
+  const target = document.getElementById(targetId) || document.getElementById("top");
+  const workspace = target.dataset.workspace || "story";
+  document.body.dataset.workspace = workspace;
+  document.querySelectorAll("[data-workspace]").forEach((section) => { section.hidden = section.dataset.workspace !== workspace; });
+  document.querySelectorAll(".topbar nav a").forEach((link) => link.classList.toggle("is-current", link.getAttribute("href") === `#${target.id}`));
+  if (updateHistory) history.pushState({ workspace, target: target.id }, "", `#${target.id}`);
+  requestAnimationFrame(() => target.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }));
+}
+
+let replayTimer;
+function replayRelease() {
+  clearInterval(replayTimer);
+  const lines = recordedConsoleLines();
+  const body = $("#console-body");
+  const button = $("#replay-run");
+  body.innerHTML = "";
+  button.disabled = true;
+  $("#replay-state").textContent = language === "en" ? "Replaying retained evidence…" : "Відтворюю збережені докази…";
+  let index = 0;
+  const append = () => {
+    const [kind, line] = lines[index++];
+    body.insertAdjacentHTML("beforeend", `<div class="console-line console-${kind}"><span>${kind === "cmd" ? "$" : kind === "fail" ? "×" : "✓"}</span><code>${line}</code></div>`);
+    body.scrollTop = body.scrollHeight;
+    if (index >= lines.length) {
+      clearInterval(replayTimer);
+      button.disabled = false;
+      $("#replay-state").textContent = t("replayBoundary");
+    }
+  };
+  append();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) while (index < lines.length) append();
+  else replayTimer = setInterval(append, 360);
 }
 
 function renderEvidence(run) {
@@ -298,6 +451,18 @@ function bindInteractions() {
   $("#dropzone").addEventListener("drop", (event) => chooseFile(event.dataTransfer.files[0]));
   $("#confidence").addEventListener("input", () => { $("#confidence-output").value = $("#confidence").value; });
   $("#run-inference").addEventListener("click", runInference);
+  $("#replay-run").addEventListener("click", replayRelease);
+  $("#build-platform").addEventListener("click", buildPlatformReplay);
+  document.querySelectorAll("[data-infra-view]").forEach((button) => button.addEventListener("click", () => renderInfra(button.dataset.infraView)));
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[href^='#']");
+    if (!link) return;
+    const targetId = link.getAttribute("href").slice(1) || "top";
+    if (!document.getElementById(targetId)) return;
+    event.preventDefault();
+    activateWorkspace(targetId, true);
+  });
+  window.addEventListener("popstate", () => activateWorkspace(location.hash.slice(1) || "top"));
   $("#language-switch").addEventListener("click", () => {
     language = language === "en" ? "uk" : "en";
     localStorage.setItem("peregrine-language", language);
@@ -319,6 +484,7 @@ function bindInteractions() {
 }
 
 bindInteractions();
+activateWorkspace(location.hash.slice(1) || "top");
 applyLanguage();
 try {
   evidence = await loadEvidence();
@@ -327,9 +493,16 @@ try {
   renderMissingEvidence(error);
 }
 try {
+  platformEvents = await loadPlatformEventModel();
+  renderInfra("provision");
+} catch (error) {
+  $("#infra-caption").textContent = `Platform event model unavailable: ${error.message}`;
+}
+try {
   platformState = await loadPlatform();
   renderPlatform(document.querySelector(".platform-node.is-active")?.dataset.layer || "source");
   renderPipeline();
 } catch (error) {
   $("#platform-detail").insertAdjacentHTML("afterbegin", `<div class="live-deployment is-offline"><span>OFFLINE</span><b>${language === "en" ? "Live deployment identity unavailable" : "Ідентичність живого deployment недоступна"}</b></div>`);
 }
+registerPwaShell();

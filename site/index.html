@@ -4,22 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#08120f" />
+  <meta name="application-name" content="Peregrine Control Room" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="description" content="Put a warehouse detector through its release gates, trace every observed number, and run the model on your own image." />
   <meta property="og:title" content="Peregrine — qualify a vision model for the edge" />
   <meta property="og:description" content="A live computer-vision MLOps release bench: evidence, gates, device targets, and real image inference." />
   <title>Peregrine — qualify a vision model for the edge</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./peregrine-mark.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css?v=control-room-1" />
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="skip">Skip to the release bench</a>
   <header class="topbar">
     <a class="wordmark" href="#top" aria-label="Peregrine home"><span aria-hidden="true">P/</span> Peregrine</a>
-    <nav aria-label="Story sections"><a href="#platform" data-i18n="navPlatform">Platform</a><a href="#pipeline" data-i18n="navPipeline">Pipeline</a><a href="#gate-lab" data-i18n="navGate">Gate lab</a><a href="#detector" data-i18n="navDetector">Detector</a><a href="#operations" data-i18n="navOps">Operations</a></nav>
+    <nav aria-label="Application workspaces"><a href="#platform" data-i18n="navPlatform">Platform</a><a href="#control-room" data-i18n="navControl">Control room</a><a href="#gate-lab" data-i18n="navGate">Gate lab</a><a href="#detector" data-i18n="navDetector">Detector</a><a href="#trace" data-i18n="navOps">Evidence</a></nav>
     <div class="topbar-actions"><button class="language-switch" id="language-switch" type="button" aria-label="Switch to Ukrainian">УКР</button><a class="repo-link" href="https://github.com/ASKoshelenko/peregrine" data-i18n="source">Source ↗</a></div>
     <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
   </header>
   <main id="main">
-    <section class="hero" id="top" aria-labelledby="hero-title">
+    <section class="hero" id="top" data-workspace="story" aria-labelledby="hero-title">
       <div class="hero-copy">
         <p class="eyebrow" data-i18n="heroEyebrow">Platform engineering · MLOps · edge inference</p>
         <h1 id="hero-title" data-i18n="heroTitle">I did not deploy a model. I built the system that decides if it deserves deployment.</h1>
@@ -39,7 +43,7 @@
       </div>
       <div class="metrics" id="metrics" aria-label="Observed metrics"></div>
     </section>
-    <section class="chapter platform-chapter" id="platform" aria-labelledby="platform-title">
+    <section class="chapter platform-chapter" id="platform" data-workspace="story" aria-labelledby="platform-title">
       <header class="chapter-head"><p class="eyebrow" data-i18n="platformEyebrow">01 · The platform under the model</p><h2 id="platform-title" data-i18n="platformTitle">Follow one artifact through the whole system.</h2><p data-i18n="platformLead">Select a layer. The map shows what it owns, what it emits, and which engineering control prevents a quiet failure.</p></header>
       <div class="platform-map">
         <div class="platform-spine" role="list" aria-label="Platform layers">
@@ -54,19 +58,39 @@
       </div>
       <div class="ownership-strip"><span data-i18n="ownershipLabel">What I owned end to end</span><b data-i18n="ownershipValue">Architecture · IaC · MLOps contracts · security boundaries · cost controls · product UX · production verification</b></div>
     </section>
-    <section class="chapter pipeline-chapter" id="pipeline" aria-labelledby="pipeline-title">
+    <section class="chapter pipeline-chapter" id="pipeline" data-workspace="story" aria-labelledby="pipeline-title">
       <header class="chapter-head"><p class="eyebrow" data-i18n="pipelineEyebrow">02 · Delivery, not a notebook</p><h2 id="pipeline-title" data-i18n="pipelineTitle">Every transition leaves proof.</h2><p data-i18n="pipelineLead">The pipeline is an evidence conveyor: each stage consumes pinned parents, emits an immutable artifact and may stop the release.</p></header>
       <div class="pipeline-flow" id="pipeline-flow"></div>
       <div class="pipeline-legend"><span><i class="legend-artifact"></i><b data-i18n="legendArtifact">artifact</b></span><span><i class="legend-control"></i><b data-i18n="legendControl">control</b></span><span><i class="legend-evidence"></i><b data-i18n="legendEvidence">evidence</b></span></div>
     </section>
-    <section class="chapter" id="gate-lab" aria-labelledby="gate-title">
+    <section class="chapter control-room-chapter" id="control-room" data-workspace="control" aria-labelledby="control-room-title">
+      <header class="chapter-head"><p class="eyebrow" data-i18n="controlEyebrow">03 · Platform control room</p><h2 id="control-room-title" data-i18n="controlTitle">Watch the system build its own proof.</h2><p data-i18n="controlLead">Replay the recorded, evidence-backed release. Live state is polled from production; defined automation is never presented as executed.</p></header>
+      <div class="truth-legend" aria-label="Evidence state legend"><span class="truth-live">LIVE</span><small data-i18n="truthLive">queried now</small><span class="truth-recorded">RECORDED</span><small data-i18n="truthRecorded">real retained run</small><span class="truth-defined">DEFINED</span><small data-i18n="truthDefined">automation contract</small></div>
+      <div class="control-grid">
+        <section class="run-console" aria-labelledby="run-console-title">
+          <div class="console-bar"><div><i></i><i></i><i></i></div><span id="run-console-title">release@peregrine: ~/qualification</span><b class="truth-recorded">RECORDED</b></div>
+          <div class="console-body" id="console-body" role="log" aria-live="polite"></div>
+          <div class="console-footer"><button class="button button-primary" id="replay-run" type="button" data-i18n="replayRun">Replay real release</button><span id="replay-state" data-i18n="replayBoundary">No compute is started. This replays retained evidence.</span></div>
+        </section>
+        <aside class="automation-board">
+          <div class="panel-label" data-i18n="automationTitle">Automation surfaces</div>
+          <div id="automation-list"></div>
+        </aside>
+      </div>
+      <div class="infra-workbench">
+        <div class="infra-head"><div><span class="truth-live">LIVE</span><h3 data-i18n="infraTitle">Infrastructure creation and request path</h3></div><div class="infra-actions"><button class="button button-primary" id="build-platform" type="button" data-i18n="buildPlatform">Build the platform</button><div class="infra-tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-infra-view="provision" data-i18n="infraProvision">End-to-end build</button><button type="button" role="tab" aria-selected="false" data-infra-view="runtime" data-i18n="infraRuntime">Runtime request</button></div></div></div>
+        <div class="infra-canvas" id="infra-canvas" aria-live="polite"></div>
+        <p class="infra-caption" id="infra-caption"></p>
+      </div>
+    </section>
+    <section class="chapter" id="gate-lab" data-workspace="release" aria-labelledby="gate-title">
       <header class="chapter-head"><p class="eyebrow" data-i18n="gateEyebrow">03 · Policy as executable code</p><h2 id="gate-title" data-i18n="gateTitle">Make the release system say no.</h2><p data-i18n="gateLead">Change a hypothetical budget. The observed measurements stay fixed; only your scenario changes.</p></header>
       <div class="lab-shell">
         <aside class="scenario-panel"><div class="panel-label" data-i18n="scenarioControls">Scenario controls</div><div id="gate-controls"></div><label class="lineage-toggle"><input id="lineage-toggle" type="checkbox" checked /> <span data-i18n="lineagePresent">Dataset lineage is present</span></label><button class="button button-secondary" id="reset-gates" type="button" data-i18n="resetRelease">Reset to observed release</button><p class="boundary-note" data-i18n="simulationBoundary">Hypothetical simulation. It does not change committed budgets, artifacts or the model registry.</p></aside>
         <div class="gate-stage"><div class="verdict-card" id="scenario-verdict" aria-live="polite"><span data-i18n="scenarioSimulation">Scenario simulation</span><strong>—</strong><p data-i18n="waitingEvidence">Waiting for evidence.</p></div><div class="gate-list" id="gate-list"></div></div>
       </div>
     </section>
-    <section class="chapter detector-chapter" id="detector" aria-labelledby="detector-title">
+    <section class="chapter detector-chapter" id="detector" data-workspace="detector" aria-labelledby="detector-title">
       <header class="chapter-head"><p class="eyebrow" data-i18n="detectorEyebrow">04 · The product, in your hands</p><h2 id="detector-title" data-i18n="detectorTitle">Bring a warehouse frame.</h2><p data-i18n="detectorLead">The image goes to the live scale-to-zero ONNX API, is processed in memory and is not retained.</p></header>
       <div class="detector-shell">
         <div class="drop-column">
@@ -78,9 +102,9 @@
         <aside class="result-panel"><div class="panel-label" data-i18n="liveResponse">Live response</div><dl id="runtime-facts"><div><dt>Runtime</dt><dd>—</dd></div><div><dt data-i18n="model">Model</dt><dd>—</dd></div><div><dt data-i18n="requestTime">Request time</dt><dd>—</dd></div></dl><div id="detection-list" class="detection-list"><p data-i18n="noDetections">No detections yet.</p></div><p class="boundary-note" data-i18n="timingBoundary">Per-request time is interactive timing on Cloud Run, not the controlled benchmark p95.</p></aside>
       </div>
     </section>
-    <section class="chapter" id="trace" aria-labelledby="trace-title"><header class="chapter-head"><p class="eyebrow" data-i18n="traceEyebrow">05 · Evidence, not confidence</p><h2 id="trace-title" data-i18n="traceTitle">Every parent of the verdict, on screen.</h2><p data-i18n="traceLead">Open any link in the chain to see the full immutable identifier behind the short label.</p></header><div class="trace-chain" id="trace-chain"></div></section>
-    <section class="chapter" id="fleet" aria-labelledby="fleet-title"><header class="chapter-head"><p class="eyebrow" data-i18n="fleetEyebrow">06 · One model, several runtimes</p><h2 id="fleet-title" data-i18n="fleetTitle">The target is part of the release.</h2><p data-i18n="fleetLead">Reference and trend lanes stay visibly separate; ARM64 container timing is not presented as physical-device latency.</p></header><div class="fleet-table-wrap"><table class="fleet-table"><thead><tr><th data-i18n="thTarget">Target</th><th data-i18n="thLane">Lane</th><th data-i18n="thQuality">Quality</th><th>p50</th><th>p95</th><th data-i18n="thSize">Size</th></tr></thead><tbody id="fleet-body"></tbody></table></div></section>
-    <section class="chapter operations-chapter" id="operations" aria-labelledby="operations-title">
+    <section class="chapter" id="trace" data-workspace="evidence" aria-labelledby="trace-title"><header class="chapter-head"><p class="eyebrow" data-i18n="traceEyebrow">05 · Evidence, not confidence</p><h2 id="trace-title" data-i18n="traceTitle">Every parent of the verdict, on screen.</h2><p data-i18n="traceLead">Open any link in the chain to see the full immutable identifier behind the short label.</p></header><div class="trace-chain" id="trace-chain"></div></section>
+    <section class="chapter" id="fleet" data-workspace="evidence" aria-labelledby="fleet-title"><header class="chapter-head"><p class="eyebrow" data-i18n="fleetEyebrow">06 · One model, several runtimes</p><h2 id="fleet-title" data-i18n="fleetTitle">The target is part of the release.</h2><p data-i18n="fleetLead">Reference and trend lanes stay visibly separate; ARM64 container timing is not presented as physical-device latency.</p></header><div class="fleet-table-wrap"><table class="fleet-table"><thead><tr><th data-i18n="thTarget">Target</th><th data-i18n="thLane">Lane</th><th data-i18n="thQuality">Quality</th><th>p50</th><th>p95</th><th data-i18n="thSize">Size</th></tr></thead><tbody id="fleet-body"></tbody></table></div></section>
+    <section class="chapter operations-chapter" id="operations" data-workspace="story" aria-labelledby="operations-title">
       <header class="chapter-head"><p class="eyebrow" data-i18n="opsEyebrow">07 · Production posture</p><h2 id="operations-title" data-i18n="opsTitle">Cheap when idle. Bounded when busy. Explainable always.</h2><p data-i18n="opsLead">Platform engineering is the set of constraints that remain true after the demo ends.</p></header>
       <div class="ops-grid">
         <article><span>IDENTITY</span><strong data-i18n="opsIdentityTitle">No ambient project power</strong><p data-i18n="opsIdentityBody">The runtime service account has no project roles. The model is bundled and fingerprint-checked at startup.</p></article>
@@ -90,8 +114,8 @@
       </div>
       <div class="infra-route" aria-label="Production request route"><span>Browser</span><i>HTTPS</i><span>Azure DNS</span><i>CNAME</i><span>Google Frontend</span><i>TLS</i><span>Cloud Run</span><i>CPU</i><span>ONNX</span></div>
     </section>
-    <section class="chapter pains" id="story" aria-labelledby="story-title"><header class="chapter-head"><p class="eyebrow" data-i18n="storyEyebrow">08 · Why this exists</p><h2 id="story-title" data-i18n="storyTitle">Six failure modes, one operating model.</h2></header><div id="pain-list"></div></section>
-    <section class="chapter method" id="method" aria-labelledby="method-title">
+    <section class="chapter pains" id="story" data-workspace="story" aria-labelledby="story-title"><header class="chapter-head"><p class="eyebrow" data-i18n="storyEyebrow">08 · Why this exists</p><h2 id="story-title" data-i18n="storyTitle">Six failure modes, one operating model.</h2></header><div id="pain-list"></div></section>
+    <section class="chapter method" id="method" data-workspace="story" aria-labelledby="method-title">
       <header class="chapter-head"><p class="eyebrow" data-i18n="methodEyebrow">09 · Method and scope</p><h2 id="method-title" data-i18n="methodTitle">What this system proves.</h2><p data-i18n="methodLead">Observed numbers come from versioned artifacts. Missing evidence renders a dash, never a convenient fallback.</p></header>
       <div class="method-grid"><div id="boundaries"></div><div class="api-card"><div class="panel-label" data-i18n="developerContract">Developer contract</div><pre><code>curl -s https://peregrine.devopsdive.com/api/healthz
 curl --data-binary @warehouse.jpg -H 'Content-Type: image/jpeg' \
@@ -101,6 +125,6 @@ curl --data-binary @warehouse.jpg -H 'Content-Type: image/jpeg' \
   <footer><span data-i18n="footer">Peregrine · a platform story backed by running evidence</span><a href="https://devopsdive.com/">devopsdive.com ↗</a><span id="footer-run">run —</span></footer>
   <div class="mobile-actions"><a href="#platform" data-i18n="mobilePlatform">Platform</a><a href="#detector" data-i18n="mobileTry">Try detector</a></div>
   <button class="back-to-top" id="back-to-top" type="button" aria-label="Back to top"><span aria-hidden="true">↑</span><small data-i18n="backToTop">Top</small></button>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=control-room-1"></script>
 </body>
 </html>

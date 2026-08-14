@@ -1,0 +1,13 @@
+{
+  "name": "Peregrine MLOps Control Room",
+  "short_name": "Peregrine",
+  "description": "An evidence-backed platform engineering and edge MLOps control room.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050b09",
+  "theme_color": "#08120f",
+  "icons": [
+    {"src": "/peregrine-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
