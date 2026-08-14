@@ -502,6 +502,8 @@ try {
   platformState = await loadPlatform();
   renderPlatform(document.querySelector(".platform-node.is-active")?.dataset.layer || "source");
   renderPipeline();
+  renderAutomation();
+  renderInfra(document.querySelector("[data-infra-view][aria-selected='true']")?.dataset.infraView || "provision");
 } catch (error) {
   $("#platform-detail").insertAdjacentHTML("afterbegin", `<div class="live-deployment is-offline"><span>OFFLINE</span><b>${language === "en" ? "Live deployment identity unavailable" : "Ідентичність живого deployment недоступна"}</b></div>`);
 }
