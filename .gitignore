@@ -30,7 +30,10 @@ override.tf.json
 *_override.tf.json
 
 # ML data, outputs, and caches
-/data/
+/data/raw/*/
+/data/processed/warehouse-smoke/
+/data/processed/warehouse-calib/
+/data/processed/warehouse/
 /artifacts/
 /outputs/
 /runs/

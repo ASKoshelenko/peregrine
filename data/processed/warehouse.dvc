@@ -1,0 +1,6 @@
+outs:
+- md5: d805ab4df8688419af2849e48b63cbd9.dir
+  size: 52699344
+  nfiles: 2070
+  hash: md5
+  path: warehouse
