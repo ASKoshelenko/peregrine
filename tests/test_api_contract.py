@@ -7,13 +7,27 @@ from starlette.requests import Request
 from starlette.types import Message
 
 import peregrine.api as api
-from peregrine.api import PredictRequest, healthz, predict, predict_image
+from peregrine.api import PredictRequest, healthz, platform, predict, predict_image
 from peregrine.inference import DetectionResult, InferenceResult
 
 
 def test_healthz_contract():
     assert healthz()["ok"] is True
     assert {route.path for route in api.app.routes} >= {"/healthz", "/api/healthz"}
+
+
+def test_platform_contract_is_live_and_non_secret(monkeypatch) -> None:
+    monkeypatch.setattr(api, "_detector", _Detector())
+    monkeypatch.setenv("K_SERVICE", "peregrine")
+    monkeypatch.setenv("K_REVISION", "peregrine-00005-test")
+    monkeypatch.setenv("PEREGRINE_IMAGE_DIGEST", "b" * 64)
+    response = platform()
+    assert response.service == "peregrine"
+    assert response.revision == "peregrine-00005-test"
+    assert response.model_sha256 == "a" * 64
+    assert response.image_digest == "b" * 64
+    assert response.min_instances == 0
+    assert response.max_instances == 1
 
 
 def test_predict_returns_lineage_and_detections():
@@ -24,6 +38,8 @@ def test_predict_returns_lineage_and_detections():
 
 
 class _Detector:
+    model_sha256 = "a" * 64
+
     def predict(self, payload: bytes, confidence: float = 0.25) -> InferenceResult:
         assert payload
         assert confidence == 0.4

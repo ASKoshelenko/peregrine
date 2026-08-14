@@ -1,4 +1,5 @@
 locals {
+  image_digest = var.service_image == "" ? "" : trimprefix(split("@", var.service_image)[1], "sha256:")
   common_labels = {
     project     = "peregrine"
     environment = "demo"

@@ -63,6 +63,24 @@ class LivePredictResponse(BaseModel):
     retention: str
 
 
+class PlatformResponse(BaseModel):
+    """Live deployment identity joined to the observed evidence lineage."""
+
+    service: str
+    revision: str
+    region: str
+    runtime: str
+    model_sha256: str
+    run_id: str
+    dataset_fingerprint: str
+    image_digest: str
+    min_instances: int
+    max_instances: int
+    concurrency: int
+    cpu: str
+    memory: str
+
+
 app = FastAPI(title="Peregrine", version=__version__)
 app.add_middleware(
     CORSMiddleware,
@@ -101,6 +119,28 @@ def readyz() -> dict[str, object]:
     except InferenceError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     return {"ready": True, "model_sha256": detector.model_sha256}
+
+
+@app.get("/api/platform", response_model=PlatformResponse)
+def platform() -> PlatformResponse:
+    """Expose non-secret facts about the exact serving revision and its parents."""
+    run = observed_run()
+    detector = _get_detector()
+    return PlatformResponse(
+        service=os.getenv("K_SERVICE", "peregrine-local"),
+        revision=os.getenv("K_REVISION", "local"),
+        region=os.getenv("PEREGRINE_REGION", "us-central1"),
+        runtime="ONNX Runtime · CPUExecutionProvider",
+        model_sha256=detector.model_sha256,
+        run_id=str(run["run_id"]),
+        dataset_fingerprint=str(run["lineage"]["dataset_fingerprint"]),
+        image_digest=os.getenv("PEREGRINE_IMAGE_DIGEST", "local-image"),
+        min_instances=int(os.getenv("PEREGRINE_MIN_INSTANCES", "0")),
+        max_instances=int(os.getenv("PEREGRINE_MAX_INSTANCES", "1")),
+        concurrency=int(os.getenv("PEREGRINE_CONCURRENCY", "4")),
+        cpu=os.getenv("PEREGRINE_CPU", "1"),
+        memory=os.getenv("PEREGRINE_MEMORY", "1Gi"),
+    )
 
 
 @app.post("/api/predict", response_model=LivePredictResponse)

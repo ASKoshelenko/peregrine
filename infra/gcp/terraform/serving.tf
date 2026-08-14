@@ -61,6 +61,22 @@ resource "google_cloud_run_v2_service" "api" {
     containers {
       image = var.service_image
 
+      dynamic "env" {
+        for_each = {
+          PEREGRINE_CONCURRENCY   = "4"
+          PEREGRINE_CPU           = "1"
+          PEREGRINE_IMAGE_DIGEST  = local.image_digest
+          PEREGRINE_MAX_INSTANCES = "1"
+          PEREGRINE_MEMORY        = "1Gi"
+          PEREGRINE_MIN_INSTANCES = "0"
+          PEREGRINE_REGION        = var.region
+        }
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
       resources {
         limits = {
           cpu    = "1"
