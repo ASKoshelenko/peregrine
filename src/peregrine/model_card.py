@@ -34,7 +34,7 @@ def render_model_card(run: dict[str, Any]) -> str:
         "",
         "## Metrics by target",
         "",
-        "| Target | mAP50 proxy | mAP50-95 proxy | p50 ms | p95 ms | Size MB | Lane | Host |",
+        "| Target | mAP50 | mAP50-95 | p50 ms | p95 ms | Size MB | Lane | Host |",
         "|---|---:|---:|---:|---:|---:|---|---|",
     ]
     for target, metrics in targets.items():

@@ -116,6 +116,7 @@ def build_real_run(fragments: Path, matrix_path: Path) -> dict[str, Any]:
             "host": benchmark["host"],
         }
     observed_at = max(str(payload["observed_at"]) for payload in loaded.values())
+    training_run = _training_run()
     test_images = {loaded["eval", target]["images"] for target in targets}
     if len(test_images) != 1:
         raise EvidenceBuildError("eval fragments disagree on test image count")
@@ -147,13 +148,24 @@ def build_real_run(fragments: Path, matrix_path: Path) -> dict[str, Any]:
             "calibration_hash": (
                 next(iter(calibration_hashes)) if len(calibration_hashes) == 1 else None
             ),
-            "wandb_run": None,
+            "wandb_run": training_run.get("wandb_run"),
         },
-        "cost": {"training_run_usd": None, "training_run_note": "not yet observed"},
+        "cost": {
+            "training_run_usd": training_run.get("observed_cost_usd"),
+            "training_run_note": (
+                "free Colab T4 baseline; no Vertex GPU and no GitHub Actions minutes used"
+            ),
+        },
         "boundaries": {
-            "accuracy": "held-out test evaluation from run-produced fragments",
-            "arm64": "execution substrate is recorded per benchmark fragment",
-            "serving": "device artifact evaluation; deployment is outside this phase",
+            "accuracy": (
+                "mAP@0.50 / mAP@0.50:0.95 by the Ultralytics evaluator on the "
+                f"held-out test split (N={next(iter(test_images))})"
+            ),
+            "arm64": "ARM64 is a labeled trend lane (native container class), not device latency",
+            "serving": (
+                "FastAPI contract validated by tests; scale-to-zero deployment is a cost "
+                "decision exercised on demand"
+            ),
         },
     }
     run["fingerprint"] = sha256_json(
@@ -161,6 +173,15 @@ def build_real_run(fragments: Path, matrix_path: Path) -> dict[str, Any]:
     )
     run["release_verdict"] = evaluate_release_gates(run).to_dict()
     return run
+
+
+def _training_run() -> dict[str, Any]:
+    ledger_path = Path(__file__).resolve().parents[2] / "docs" / "gpu-runs.yaml"
+    ledger = yaml.safe_load(ledger_path.read_text(encoding="utf-8"))
+    for run in ledger["runs"]:
+        if isinstance(run, dict) and run.get("id") == "colab-t4-baseline-001":
+            return dict(run)
+    raise EvidenceBuildError("training ledger is missing colab-t4-baseline-001")
 
 
 def _validate_fragment(payload: object, kind: str, target: str) -> None:

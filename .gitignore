@@ -34,7 +34,13 @@ override.tf.json
 /data/processed/warehouse-smoke/
 /data/processed/warehouse-calib/
 /data/processed/warehouse/
-/artifacts/
+/artifacts/*
+!/artifacts/observed/
+/artifacts/observed/*
+!/artifacts/observed/latest.json
+!/artifacts/model-cards/
+/artifacts/model-cards/*
+!/artifacts/model-cards/peregrine-yolov8n-int8.md
 /outputs/
 /runs/
 /wandb/

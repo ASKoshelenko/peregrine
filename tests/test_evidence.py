@@ -8,6 +8,12 @@ from peregrine import evidence
 from peregrine.evidence import EvidenceBuildError, build_real_run
 
 
+def test_training_ledger_supplies_observed_cost_and_tracking() -> None:
+    run = evidence._training_run()
+    assert run["observed_cost_usd"] == 0
+    assert run["wandb_run"] == "j2t2234t"
+
+
 def _matrix(path: Path) -> Path:
     path.write_text(yaml.safe_dump({"targets": ["target"]}), encoding="utf-8")
     return path

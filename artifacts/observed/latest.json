@@ -1,0 +1,141 @@
+{
+  "accuracy_basis": "COCO mAP@0.50 / mAP@0.50:0.95, Ultralytics evaluator, held-out test split (N=11)",
+  "boundaries": {
+    "accuracy": "mAP@0.50 / mAP@0.50:0.95 by the Ultralytics evaluator on the held-out test split (N=11)",
+    "arm64": "ARM64 is a labeled trend lane (native container class), not device latency",
+    "serving": "FastAPI contract validated by tests; scale-to-zero deployment is a cost decision exercised on demand"
+  },
+  "cost": {
+    "training_run_note": "free Colab T4 baseline; no Vertex GPU and no GitHub Actions minutes used",
+    "training_run_usd": 0
+  },
+  "dataset_hash": "0c46212dc22a71b9c59846c70681dd9a53cd3733e51d196364b8d20230855a77",
+  "dataset_version": "mamgistics-v1",
+  "environment": {
+    "env_hash": "5bf7feff8009c379d1faedba1076d9f18df21155fd3d3d36ec130e4998869a6f"
+  },
+  "fingerprint": "a08e0f17b7aee72dcb387c170594f92c7492bc349d723cb7011cc87acb0b75c8",
+  "label_space_version": "warehouse-assets-2-v1",
+  "lineage": {
+    "budget_commit": "da593f118f989fa90414fb2546d7672d3602f3ec",
+    "calibration_hash": "90dbeb2be9fd334563b676895d0c173436344d03e8c594132a597fc4e361c28c",
+    "config_sha256": "85079b7454311765ce82a09bbfc07da485db896881acaef0a020ecb2bb16495e",
+    "dataset_fingerprint": "0c46212dc22a71b9c59846c70681dd9a53cd3733e51d196364b8d20230855a77",
+    "run_commit": "f065204c3a87f6b21e93ab59e83a5d42fc8cc681",
+    "source_commit": "f065204c3a87f6b21e93ab59e83a5d42fc8cc681",
+    "wandb_run": "j2t2234t"
+  },
+  "model": {
+    "base": "run-produced checkpoint",
+    "license_note": "YOLOv8/Ultralytics model lane is AGPL-3.0.",
+    "name": "peregrine-yolov8n"
+  },
+  "observed_at": "2026-08-14T11:37:35.389683+00:00",
+  "release_verdict": {
+    "failed_gate_ids": [],
+    "gates": [
+      {
+        "budget": 0.08,
+        "detail": "converted TFLite INT8 is evaluated as a new model",
+        "gate_id": "Q1",
+        "measured": 0.0262,
+        "name": "post-quant mAP@0.50 drop",
+        "status": "pass"
+      },
+      {
+        "budget": 227.5,
+        "detail": "budget is target-specific and checked after conversion",
+        "gate_id": "Q2",
+        "measured": 182.0363,
+        "name": "x86 TFLite p95 latency",
+        "status": "pass"
+      },
+      {
+        "budget": 358.3,
+        "detail": "execution substrate is benchmark provenance, not part of the target id",
+        "gate_id": "Q3",
+        "measured": 177.2213,
+        "name": "ARM64 TFLite p95 latency",
+        "status": "pass"
+      },
+      {
+        "budget": 4.0,
+        "detail": "size budget protects device rollout constraints",
+        "gate_id": "Q4",
+        "measured": 3.33,
+        "name": "INT8 artifact size",
+        "status": "pass"
+      },
+      {
+        "budget": "sha256",
+        "detail": "model card must name the dataset snapshot used for evaluation",
+        "gate_id": "Q5",
+        "measured": "0c46212dc22a71b9c59846c70681dd9a53cd3733e51d196364b8d20230855a77",
+        "name": "dataset lineage pinned",
+        "status": "pass"
+      }
+    ],
+    "passed": true
+  },
+  "run_id": "peregrine-real-f065204c3a87",
+  "schema_version": "peregrine.observed.v2",
+  "split_counts": {
+    "test": 11
+  },
+  "targets": {
+    "arm64_tflite_int8": {
+      "host": {
+        "arch": "aarch64",
+        "cpu_model": "unknown",
+        "os": "Linux-6.10.14-linuxkit-aarch64-with-glibc2.41",
+        "python": "3.12.13",
+        "runtime_name": "tensorflow-lite",
+        "runtime_version": "2.21.0"
+      },
+      "lane": "trend",
+      "map5095_proxy": 0.6594202479587514,
+      "map50_proxy": 0.9450692427267249,
+      "p50_ms": 163.8196,
+      "p95_ms": 177.2213,
+      "precision": 0.8150126880734361,
+      "recall": 0.960367476173616,
+      "size_mb": 3.33
+    },
+    "x86_onnx_fp32": {
+      "host": {
+        "arch": "x86_64",
+        "cpu_model": "x86_64",
+        "os": "Linux-6.6.122+-x86_64-with-glibc2.35",
+        "python": "3.12.13",
+        "runtime_name": "onnxruntime",
+        "runtime_version": "1.28.0"
+      },
+      "lane": "reference",
+      "map5095_proxy": 0.8267049207187742,
+      "map50_proxy": 0.9713072083323426,
+      "p50_ms": 99.2397,
+      "p95_ms": 146.9439,
+      "precision": 0.9013626130898572,
+      "recall": 0.9660794330576483,
+      "size_mb": 12.27
+    },
+    "x86_tflite_int8": {
+      "host": {
+        "arch": "x86_64",
+        "cpu_model": "x86_64",
+        "os": "Linux-6.6.122+-x86_64-with-glibc2.35",
+        "python": "3.12.13",
+        "runtime_name": "tensorflow-lite",
+        "runtime_version": "2.20.0"
+      },
+      "lane": "reference",
+      "map5095_proxy": 0.6594202479587514,
+      "map50_proxy": 0.9450692427267249,
+      "p50_ms": 126.7037,
+      "p95_ms": 182.0363,
+      "precision": 0.8150126880734361,
+      "recall": 0.960367476173616,
+      "size_mb": 3.33
+    }
+  }
+}

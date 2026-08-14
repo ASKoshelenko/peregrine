@@ -3,7 +3,7 @@ const EVIDENCE_URL = "../artifacts/observed/latest.json";
 const pains = [
   ["The INT8 accuracy cliff", "A checkpoint passed eval, then the converted model quietly lost accuracy on the target.", "Post-quant metrics are gated per target; calibration data is versioned with the model card.", "release.yml matrix + Q1 post-quant gate", "Which target bites you hardest on the cliff today — TFLite, TensorRT, or the DSP?"],
   ["Research to production handoff", "Researchers hand off a notebook or checkpoint; engineering inherits an ambiguous contract.", "The handoff artifact is a package plus materialized config, model fingerprint, and registry record.", "model card with dataset/env/fingerprint lineage", "What does a handoff artifact look like in your team today — a notebook, a checkpoint, or a package?"],
-  ["A heterogeneous device fleet", "A runtime or delegate update changes what executes where, and the model fails without a clean error.", "The conversion matrix is code; p95, size, and parity budgets are target-specific.", "x86 ONNX / x86 TFLite / ARM64-QEMU benchmark JSON", "When a runtime updates on your devices, what re-validates the models across the fleet?"],
+  ["A heterogeneous device fleet", "A runtime or delegate update changes what executes where, and the model fails without a clean error.", "The conversion matrix is code; p95, size, and parity budgets are target-specific.", "x86 ONNX / x86 TFLite / labeled ARM64 trend benchmark JSON", "When a runtime updates on your devices, what re-validates the models across the fleet?"],
   ["The dataset never stops growing", "Relabels and new camera data break comparability unless snapshots are pinned.", "DVC snapshots, label-space versions, and registry links force a re-baseline when data changes.", "dataset hash in observed JSON and model card", "When labels change without new images, does anything force a re-baseline today?"],
   ["Nobody can reproduce January's experiment", "Configs become folklore and metrics drift across dashboards.", "Hydra configs and W&B artifact slots make the run reconstructable from its materialized config.", "configs/ + workflow slots + model card", "Could a January run be reproduced from its config alone?"],
   ["GPUs: queues, quotas, and the bill", "Quota fails at the deadline and cost per run is discovered after the fact.", "GPU is a scheduled resource; CPU-smoke fallback proves mechanics; cost is a model-card field.", "train.yml lane + cost boundary", "Who owns the training bill today — and has quota ever blocked a deadline?"]
@@ -20,7 +20,7 @@ function metric(value, label) {
 }
 
 const METRIC_LABELS = [
-  "mAP@0.50 proxy FP32 to INT8",
+  "held-out mAP@0.50 FP32 to INT8",
   "x86 TFLite INT8 p95",
   "ARM64 TFLite INT8 p95",
   "INT8 artifact size"

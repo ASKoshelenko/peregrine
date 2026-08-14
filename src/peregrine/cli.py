@@ -232,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
 def _print_target(name: str, metrics: dict[str, Any]) -> None:
     """Print one target's observed metric line."""
     print(
-        f"{name}: mAP@0.50 proxy {metrics['map50_proxy']:.4f}"
+        f"{name}: mAP@0.50 {metrics['map50_proxy']:.4f}"
         f" / p95 {metrics['p95_ms']:.2f} ms / {metrics['size_mb']:.1f} MB"
     )
 

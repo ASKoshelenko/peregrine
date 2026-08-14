@@ -15,11 +15,14 @@ help: ## Show targets
 	@printf "\n$(BOLD)Peregrine$(OFF) — CV device-inference MLOps demo\n\n"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS=":.*?## "}; {printf "  $(BOLD)%-10s$(OFF) %s\n", $$1, $$2}'
 
-observe: ## Recompute observed offline metrics and model card
-	@$(STEP) "Running offline train/eval/quantize/benchmark/register simulation"
-	@PYTHONPATH=$(PYTHONPATH) $(PY) -m peregrine.cli observe --write artifacts/observed/latest.json --model-card artifacts/model-cards/peregrine-yolov8n-int8.md
+observe: ## Compose real run fragments into observed evidence and the model card
+	@$(STEP) "Composing real eval/export/benchmark evidence"
+	@PYTHONPATH=$(PYTHONPATH) $(PY) -m peregrine.cli observe --lane real \
+		--fragments artifacts/real \
+		--write artifacts/observed/latest.json \
+		--model-card artifacts/model-cards/peregrine-yolov8n-int8.md
 
-demo: observe ## Print the spoken summary from observed evidence
+demo: ## Print the spoken summary from committed observed evidence
 	@PYTHONPATH=$(PYTHONPATH) $(PY) -m peregrine.cli summary artifacts/observed/latest.json
 
 test: ## Run focused tests
@@ -39,7 +42,7 @@ check: lint test ## Lint, type-check, and test — the one-command gate
 serve: ## Serve FastAPI on :8000
 	@PYTHONPATH=$(PYTHONPATH) uvicorn peregrine.api:app --host 127.0.0.1 --port 8000 --reload
 
-site: observe ## Serve the static demo site from the repo root
+site: ## Serve the static demo site and committed observed evidence from the repo root
 	@$(STEP) "Open http://127.0.0.1:$(PORT)/site/"
 	@PYTHONPATH=$(PYTHONPATH) $(PY) -m peregrine.preview --port $(PORT)
 
