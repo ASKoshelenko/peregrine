@@ -6,6 +6,7 @@ from PIL import Image
 
 from peregrine.dataset_prepare import (
     DatasetPreparationError,
+    materialize_calibration_dataset,
     prepare_dataset,
     prepare_smoke_dataset,
 )
@@ -124,3 +125,15 @@ def test_smoke_subset_is_deterministic_and_mechanics_only(tmp_path: Path) -> Non
     assert manifest["purpose"] == "mechanics-only; never use for accuracy claims"
     assert manifest["parent_fingerprint"] == prepared.fingerprint
     assert len(list((smoke.root / "train/images").iterdir())) == 3
+
+
+def test_calibration_materializes_manifest_membership_exactly(tmp_path: Path) -> None:
+    raw = _fixture(tmp_path / "raw")
+    prepared = prepare_dataset(raw, tmp_path / "processed", _config(tmp_path / "config.yaml"))
+    calibration_hash = materialize_calibration_dataset(
+        prepared.root, tmp_path / "calibration", count=1
+    )
+    parent = yaml.safe_load((prepared.root / "manifest.json").read_text(encoding="utf-8"))
+    child = yaml.safe_load((tmp_path / "calibration/manifest.json").read_text(encoding="utf-8"))
+    assert child["members"] == parent["calibration"][:1]
+    assert child["calibration_hash"] == calibration_hash

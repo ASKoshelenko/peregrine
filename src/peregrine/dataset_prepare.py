@@ -34,6 +34,64 @@ class PreparedDataset:
     empty_annotations: int
 
 
+def materialize_calibration_dataset(
+    source: Path, destination: Path, count: int | None = None
+) -> str:
+    """Materialize the exact versioned calibration membership and return its hash."""
+    if destination.exists():
+        raise DatasetPreparationError(f"destination already exists: {destination}")
+    manifest_path = source / "manifest.json"
+    if not manifest_path.is_file():
+        raise DatasetPreparationError("prepared dataset manifest is missing")
+    manifest = _mapping(json.loads(manifest_path.read_text(encoding="utf-8")), "manifest")
+    members = manifest.get("calibration")
+    if not isinstance(members, list) or not all(isinstance(item, dict) for item in members):
+        raise DatasetPreparationError("manifest calibration membership is invalid")
+    selected = members if count is None else members[:count]
+    if count is not None and (count < 1 or len(selected) != count):
+        raise DatasetPreparationError("requested calibration count is unavailable")
+    calibration_hash = sha256_json(selected)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="peregrine-calibration-", dir=destination.parent
+    ) as tmp:
+        staging = Path(tmp) / "dataset"
+        for item in selected:
+            relative = item.get("path")
+            if not isinstance(relative, str) or not relative.startswith("train/images/"):
+                raise DatasetPreparationError("calibration member path is invalid")
+            image = source / relative
+            label = source / "train/labels" / f"{image.stem}.txt"
+            if not image.is_file() or not label.is_file():
+                raise DatasetPreparationError(f"calibration member is missing: {relative}")
+            image_out = staging / "images" / image.name
+            label_out = staging / "labels" / label.name
+            image_out.parent.mkdir(parents=True, exist_ok=True)
+            label_out.parent.mkdir(parents=True, exist_ok=True)
+            _link_or_copy(image, image_out)
+            _link_or_copy(label, label_out)
+        names = _source_names(source / "data.yaml")
+        (staging / "data.yaml").write_text(
+            yaml.safe_dump(
+                {"path": ".", "train": "images", "val": "images", "names": dict(enumerate(names))},
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        mini_manifest = {
+            "schema_version": 1,
+            "parent_fingerprint": manifest.get("fingerprint"),
+            "members": selected,
+            "images": len(selected),
+            "calibration_hash": calibration_hash,
+        }
+        (staging / "manifest.json").write_text(
+            json.dumps(mini_manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        shutil.move(str(staging), destination)
+    return calibration_hash
+
+
 def prepare_smoke_dataset(
     source: Path,
     destination: Path,

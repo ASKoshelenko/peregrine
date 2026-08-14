@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 
+from peregrine.bench import BenchmarkError, benchmark_model
 from peregrine.config import materialize_run_config
 from peregrine.dataset_fetch import DatasetFetchError, fetch_from_environment
 from peregrine.dataset_license import (
@@ -19,10 +20,13 @@ from peregrine.dataset_license import (
 )
 from peregrine.dataset_prepare import (
     DatasetPreparationError,
+    materialize_calibration_dataset,
     prepare_dataset,
     prepare_smoke_dataset,
 )
+from peregrine.evaluation import EvaluationError, evaluate_model
 from peregrine.evidence import EvidenceBuildError, build_real_run
+from peregrine.exporting import ExportError, export_model
 from peregrine.gates import evaluate_release_gates
 from peregrine.model_card import write_model_card
 from peregrine.pipeline import write_observed
@@ -69,6 +73,12 @@ def main(argv: list[str] | None = None) -> int:
     smoke.add_argument("--notice", type=Path, default=Path("docs/DATASET_LICENSE.md"))
     smoke.add_argument("--source", type=Path, default=Path("data/processed/warehouse"))
     smoke.add_argument("--destination", type=Path, default=Path("data/processed/warehouse-smoke"))
+    calibration = dataset_sub.add_parser(
+        "calibration-yaml", help="materialize versioned calibration membership"
+    )
+    calibration.add_argument("--source", type=Path, default=Path("data/processed/warehouse"))
+    calibration.add_argument("--count", type=int, default=None)
+    calibration.add_argument("--tag", default="calib")
     config = sub.add_parser("config", help="compose and materialize Hydra run configuration")
     config.add_argument(
         "--output", type=Path, default=Path("artifacts/configs/resolved-config.json")
@@ -79,6 +89,24 @@ def main(argv: list[str] | None = None) -> int:
     train.add_argument("--run-dir", type=Path, default=Path("artifacts/runs/baseline"))
     train.add_argument("--override", action="append", default=[])
     train.add_argument("--dry-run", action="store_true")
+    evaluate = sub.add_parser("eval", help="evaluate one precision and emit an eval fragment")
+    evaluate.add_argument("--weights", type=Path, required=True)
+    evaluate.add_argument("--data", type=Path, required=True)
+    evaluate.add_argument("--split", default="test")
+    evaluate.add_argument("--target", choices=TARGET_NAMES, required=True)
+    evaluate.add_argument("--out", type=Path, required=True)
+    evaluate.add_argument("--device", default=None)
+    export = sub.add_parser("export", help="export a device artifact and provenance fragment")
+    export.add_argument("--weights", type=Path, required=True)
+    export.add_argument("--format", choices=("onnx", "tflite-int8"), required=True)
+    export.add_argument("--calibration", type=Path, default=None)
+    export.add_argument("--out", type=Path, required=True)
+    bench = sub.add_parser("bench", help="benchmark one device artifact")
+    bench.add_argument("--model", type=Path, required=True)
+    bench.add_argument("--target", choices=TARGET_NAMES, required=True)
+    bench.add_argument("--lane", choices=("reference", "trend", "laboratory"), required=True)
+    bench.add_argument("--images", type=Path, required=True)
+    bench.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
     if args.command == "observe":
@@ -100,6 +128,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "dataset":
         try:
+            if args.dataset_command == "calibration-yaml":
+                calibration_destination = Path("data/processed") / f"warehouse-{args.tag}"
+                calibration_hash = materialize_calibration_dataset(
+                    args.source, calibration_destination, args.count
+                )
+                print(
+                    "calibration: PASS · "
+                    f"sha256:{calibration_hash[:12]} · {calibration_destination}"
+                )
+                return 0
             metadata = verify_dataset_license(args.config, args.notice)
             mapping = verify_label_mapping(args.config)
             if args.dataset_command == "fetch":
@@ -151,6 +189,32 @@ def main(argv: list[str] | None = None) -> int:
         mode = "DRY-RUN" if args.dry_run else "COMPLETE"
         print(f"train: {mode} · config sha256:{prepared.config_hash[:12]}")
         print(f"resolved config: {prepared.resolved_config_path}")
+        return 0
+    if args.command == "eval":
+        try:
+            fragment = evaluate_model(
+                args.weights, args.data, args.split, args.target, args.out, args.device
+            )
+        except (EvaluationError, OSError, ValueError) as error:
+            print(f"eval: BLOCK · {error}", file=sys.stderr)
+            return 1
+        print(f"eval: PASS · {fragment['target']} · {args.out}")
+        return 0
+    if args.command == "export":
+        try:
+            artifact, fragment = export_model(args.weights, args.format, args.out, args.calibration)
+        except (ExportError, OSError, ValueError) as error:
+            print(f"export: BLOCK · {error}", file=sys.stderr)
+            return 1
+        print(f"export: PASS · {fragment['target']} · {artifact}")
+        return 0
+    if args.command == "bench":
+        try:
+            fragment = benchmark_model(args.model, args.target, args.lane, args.images, args.out)
+        except (BenchmarkError, ImportError, OSError, ValueError) as error:
+            print(f"bench: BLOCK · {error}", file=sys.stderr)
+            return 1
+        print(f"bench: PASS · {fragment['target']} · {args.out}")
         return 0
     run = json.loads(args.path.read_text(encoding="utf-8"))
     verdict = evaluate_release_gates(run)
