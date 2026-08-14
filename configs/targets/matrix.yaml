@@ -1,9 +1,9 @@
 targets:
   - x86_onnx_fp32
   - x86_tflite_int8
-  - arm64_qemu_tflite_int8
+  - arm64_tflite_int8
 budgets:
   int8_map50_drop_max: 0.08
   x86_tflite_p95_ms_max: 15.0
-  arm64_qemu_p95_ms_max: 60.0
+  arm64_p95_ms_max: 60.0
   int8_size_mb_max: 4.0

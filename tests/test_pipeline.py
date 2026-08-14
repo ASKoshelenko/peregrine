@@ -3,9 +3,9 @@ from peregrine.pipeline import observed_run
 
 def test_observed_run_contains_lineage_and_targets():
     run = observed_run()
-    assert run["schema_version"] == "peregrine.observed.v1"
+    assert run["schema_version"] == "peregrine.observed.v2"
     assert len(run["fingerprint"]) == 64
-    assert set(run["targets"]) == {"x86_onnx_fp32", "x86_tflite_int8", "arm64_qemu_tflite_int8"}
+    assert set(run["targets"]) == {"x86_onnx_fp32", "x86_tflite_int8", "arm64_tflite_int8"}
     assert run["release_verdict"]["passed"] is True
 
 

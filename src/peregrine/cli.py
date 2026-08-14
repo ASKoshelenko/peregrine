@@ -22,13 +22,14 @@ from peregrine.dataset_prepare import (
     prepare_dataset,
     prepare_smoke_dataset,
 )
+from peregrine.evidence import EvidenceBuildError, build_real_run
 from peregrine.gates import evaluate_release_gates
 from peregrine.model_card import write_model_card
 from peregrine.pipeline import write_observed
 from peregrine.tracking import TrackingContractError
 from peregrine.training import TrainingContractError, execute_training, prepare_training_run
 
-TARGET_NAMES = ("x86_onnx_fp32", "x86_tflite_int8", "arm64_qemu_tflite_int8")
+TARGET_NAMES = ("x86_onnx_fp32", "x86_tflite_int8", "arm64_tflite_int8")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -36,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="peregrine")
     sub = parser.add_subparsers(dest="command", required=True)
     observe = sub.add_parser("observe", help="write observed evidence and the model card")
+    observe.add_argument("--lane", choices=("contract", "real"), default="contract")
+    observe.add_argument("--fragments", type=Path, default=Path("artifacts/real"))
     observe.add_argument("--write", type=Path, default=Path("artifacts/observed/latest.json"))
     observe.add_argument(
         "--model-card",
@@ -79,7 +82,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "observe":
-        run = write_observed(args.write)
+        try:
+            if args.lane == "real":
+                run = build_real_run(args.fragments, Path("configs/targets/matrix.yaml"))
+                args.write.parent.mkdir(parents=True, exist_ok=True)
+                args.write.write_text(
+                    json.dumps(run, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+                )
+            else:
+                run = write_observed(args.write)
+        except (EvidenceBuildError, OSError, ValueError) as error:
+            print(f"observe: BLOCK · {error}", file=sys.stderr)
+            return 1
         write_model_card(args.model_card, run)
         print(f"observed {run['run_id']} -> {args.write}")
         print(f"model card -> {args.model_card}")

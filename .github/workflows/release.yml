@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_onnx_fp32, x86_tflite_int8, arm64_qemu_tflite_int8]
+        target: [x86_onnx_fp32, x86_tflite_int8, arm64_tflite_int8]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

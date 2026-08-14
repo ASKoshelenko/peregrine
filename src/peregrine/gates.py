@@ -23,7 +23,7 @@ class Budgets:
 
     int8_map50_drop_max: float
     x86_tflite_p95_ms_max: float
-    arm64_qemu_p95_ms_max: float
+    arm64_p95_ms_max: float
     int8_size_mb_max: float
 
 
@@ -34,7 +34,7 @@ def load_budgets(path: Path = _MATRIX_PATH) -> Budgets:
     return Budgets(
         int8_map50_drop_max=float(budgets["int8_map50_drop_max"]),
         x86_tflite_p95_ms_max=float(budgets["x86_tflite_p95_ms_max"]),
-        arm64_qemu_p95_ms_max=float(budgets["arm64_qemu_p95_ms_max"]),
+        arm64_p95_ms_max=float(budgets["arm64_p95_ms_max"]),
         int8_size_mb_max=float(budgets["int8_size_mb_max"]),
     )
 
@@ -82,39 +82,49 @@ def evaluate_release_gates(
         raise TypeError("run['targets'] must be a dict")
     fp32 = _target(targets, "x86_onnx_fp32")
     int8 = _target(targets, "x86_tflite_int8")
-    arm = _target(targets, "arm64_qemu_tflite_int8")
+    arm = _target(targets, "arm64_tflite_int8")
 
-    int8_drop = round(_num(fp32, "map50_proxy") - _num(int8, "map50_proxy"), 4)
+    int8_drop = (
+        round(_num(fp32, "map50_proxy") - _num(int8, "map50_proxy"), 4)
+        if fp32 is not None and int8 is not None
+        else None
+    )
     gates = [
         GateResult(
             "Q1",
             "post-quant mAP@0.50 drop",
-            "pass" if int8_drop <= limits.int8_map50_drop_max else "fail",
-            int8_drop,
+            "pass" if int8_drop is not None and int8_drop <= limits.int8_map50_drop_max else "fail",
+            int8_drop if int8_drop is not None else "missing",
             limits.int8_map50_drop_max,
             "converted TFLite INT8 is evaluated as a new model",
         ),
         GateResult(
             "Q2",
             "x86 TFLite p95 latency",
-            "pass" if _num(int8, "p95_ms") <= limits.x86_tflite_p95_ms_max else "fail",
-            _num(int8, "p95_ms"),
+            "pass"
+            if int8 is not None and _num(int8, "p95_ms") <= limits.x86_tflite_p95_ms_max
+            else "fail",
+            _num(int8, "p95_ms") if int8 is not None else "missing",
             limits.x86_tflite_p95_ms_max,
             "budget is target-specific and checked after conversion",
         ),
         GateResult(
             "Q3",
-            "ARM64-QEMU p95 latency",
-            "pass" if _num(arm, "p95_ms") <= limits.arm64_qemu_p95_ms_max else "fail",
-            _num(arm, "p95_ms"),
-            limits.arm64_qemu_p95_ms_max,
-            "QEMU is a trend lane, not a device-farm replacement",
+            "ARM64 TFLite p95 latency",
+            "pass"
+            if arm is not None and _num(arm, "p95_ms") <= limits.arm64_p95_ms_max
+            else "fail",
+            _num(arm, "p95_ms") if arm is not None else "missing",
+            limits.arm64_p95_ms_max,
+            "execution substrate is benchmark provenance, not part of the target id",
         ),
         GateResult(
             "Q4",
             "INT8 artifact size",
-            "pass" if _num(int8, "size_mb") <= limits.int8_size_mb_max else "fail",
-            _num(int8, "size_mb"),
+            "pass"
+            if int8 is not None and _num(int8, "size_mb") <= limits.int8_size_mb_max
+            else "fail",
+            _num(int8, "size_mb") if int8 is not None else "missing",
             limits.int8_size_mb_max,
             "size budget protects device rollout constraints",
         ),
@@ -130,8 +140,10 @@ def evaluate_release_gates(
     return ReleaseVerdict(passed=all(gate.status == "pass" for gate in gates), gates=tuple(gates))
 
 
-def _target(targets: dict[str, object], name: str) -> dict[str, object]:
-    value = targets[name]
+def _target(targets: dict[str, object], name: str) -> dict[str, object] | None:
+    value = targets.get(name)
+    if value is None:
+        return None
     if not isinstance(value, dict):
         raise TypeError(f"target {name} must be a dict")
     return value

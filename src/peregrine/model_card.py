@@ -10,6 +10,11 @@ def render_model_card(run: dict[str, Any]) -> str:
     """Render a concise markdown model card from observed evidence."""
     targets = run["targets"]
     verdict = run["release_verdict"]
+    cost = run["cost"]["training_run_usd"]
+    lineage_rows = [
+        f"| `{key}` | `{value if value is not None else 'not yet observed'}` |"
+        for key, value in run["lineage"].items()
+    ]
     lines = [
         f"# {run['model']['name']} INT8 model card",
         "",
@@ -18,16 +23,25 @@ def render_model_card(run: dict[str, Any]) -> str:
         f"Fingerprint: `{run['fingerprint']}`",
         f"Dataset hash: `{run['dataset_hash']}`",
         f"Environment hash: `{run['environment']['env_hash']}`",
+        f"Accuracy basis: {run['accuracy_basis']}",
+        f"Cost: `{cost if cost is not None else 'not yet observed'}`",
+        "",
+        "## Lineage",
+        "",
+        "| Field | Value |",
+        "|---|---|",
+        *lineage_rows,
         "",
         "## Metrics by target",
         "",
-        "| Target | mAP@0.50 proxy | mAP@0.50:0.95 proxy | p50 ms | p95 ms | Size MB |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| Target | mAP50 proxy | mAP50-95 proxy | p50 ms | p95 ms | Size MB | Lane | Host |",
+        "|---|---:|---:|---:|---:|---:|---|---|",
     ]
     for target, metrics in targets.items():
         lines.append(
             f"| `{target}` | {metrics['map50_proxy']:.4f} | {metrics['map5095_proxy']:.4f} | "
-            f"{metrics['p50_ms']:.2f} | {metrics['p95_ms']:.2f} | {metrics['size_mb']:.1f} |"
+            f"{metrics['p50_ms']:.2f} | {metrics['p95_ms']:.2f} | {metrics['size_mb']:.1f} | "
+            f"{metrics.get('lane', 'contract')} | {metrics.get('host', run['environment'])} |"
         )
     lines.extend(
         [

@@ -22,22 +22,26 @@ function metric(value, label) {
 const METRIC_LABELS = [
   "mAP@0.50 proxy FP32 to INT8",
   "x86 TFLite INT8 p95",
-  "ARM64-QEMU INT8 p95",
+  "ARM64 TFLite INT8 p95",
   "INT8 artifact size"
 ];
 
 function renderEvidence(run) {
-  const fp32 = run.targets.x86_onnx_fp32;
-  const int8 = run.targets.x86_tflite_int8;
-  const arm = run.targets.arm64_qemu_tflite_int8;
+  const fp32 = run.targets?.x86_onnx_fp32;
+  const int8 = run.targets?.x86_tflite_int8;
+  const arm = run.targets?.arm64_tflite_int8;
   const q1 = run.release_verdict.gates.find((gate) => gate.gate_id === "Q1");
   const q1Note = q1 ? ` · Δ ${q1.measured} of ${q1.budget} budget (${q1.status})` : "";
+  const accuracy = fp32?.map50_proxy != null && int8?.map50_proxy != null
+    ? `${fp32.map50_proxy.toFixed(4)} -> ${int8.map50_proxy.toFixed(4)}` : "—";
+  const latency = (target) => target?.p95_ms != null ? `${target.p95_ms.toFixed(1)} ms` : "—";
+  const size = int8?.size_mb != null ? `${int8.size_mb.toFixed(1)} MB` : "—";
   document.querySelector("#metrics").innerHTML = [
-    metric(`${fp32.map50_proxy.toFixed(4)} -> ${int8.map50_proxy.toFixed(4)}`, `${METRIC_LABELS[0]}${q1Note}`),
-    metric(`${int8.p95_ms.toFixed(1)} ms`, METRIC_LABELS[1]),
-    metric(`${arm.p95_ms.toFixed(1)} ms`, METRIC_LABELS[2]),
-    metric(`${int8.size_mb.toFixed(1)} MB`, METRIC_LABELS[3]),
-    `<p class="evidence-note">run ${run.run_id} · dataset sha256:${run.dataset_hash.slice(0, 12)} · accuracy figures are F1-based proxies on the contract set, not COCO mAP</p>`
+    metric(accuracy, `${METRIC_LABELS[0]}${q1Note}`),
+    metric(latency(int8), METRIC_LABELS[1]),
+    metric(latency(arm), METRIC_LABELS[2]),
+    metric(size, METRIC_LABELS[3]),
+    `<p class="evidence-note">run ${run.run_id} · dataset sha256:${run.dataset_hash.slice(0, 12)} · ${run.accuracy_basis}</p>`
   ].join("");
   document.querySelector("#boundaries").innerHTML = Object.entries(run.boundaries).map(([key, value]) => `
     <div class="boundary"><span class="badge">${key}</span><span>${value}</span></div>

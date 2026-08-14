@@ -39,5 +39,14 @@ def test_budgets_come_from_the_target_matrix():
     budgets = load_budgets()
     assert budgets.int8_map50_drop_max == 0.08
     assert budgets.x86_tflite_p95_ms_max == 15.0
-    assert budgets.arm64_qemu_p95_ms_max == 60.0
+    assert budgets.arm64_p95_ms_max == 60.0
     assert budgets.int8_size_mb_max == 4.0
+
+
+def test_missing_target_fails_relevant_gates_without_crashing():
+    run = observed_run()
+    del run["targets"]["arm64_tflite_int8"]
+    verdict = evaluate_release_gates(run)
+    q3 = next(gate for gate in verdict.gates if gate.gate_id == "Q3")
+    assert q3.status == "fail"
+    assert q3.measured == "missing"

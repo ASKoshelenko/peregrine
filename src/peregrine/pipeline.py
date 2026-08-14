@@ -24,7 +24,7 @@ from peregrine.gates import evaluate_release_gates
 from peregrine.hashing import sha256_json
 from peregrine.metrics import Prediction, map_proxy
 from peregrine.observations import (
-    ARM64_QEMU_PREDICTIONS,
+    ARM64_TFLITE_PREDICTIONS,
     FP32_PREDICTIONS,
     INT8_TFLITE_PREDICTIONS,
     LATENCY_MS,
@@ -43,14 +43,18 @@ def observed_run() -> dict[str, Any]:
     targets = {
         "x86_onnx_fp32": _target_metrics("x86_onnx_fp32", eval_truth, FP32_PREDICTIONS),
         "x86_tflite_int8": _target_metrics("x86_tflite_int8", eval_truth, INT8_TFLITE_PREDICTIONS),
-        "arm64_qemu_tflite_int8": _target_metrics(
-            "arm64_qemu_tflite_int8", eval_truth, ARM64_QEMU_PREDICTIONS
+        "arm64_tflite_int8": _target_metrics(
+            "arm64_tflite_int8", eval_truth, ARM64_TFLITE_PREDICTIONS
         ),
     }
     run: dict[str, Any] = {
-        "schema_version": "peregrine.observed.v1",
+        "schema_version": "peregrine.observed.v2",
         "run_id": RUN_ID,
         "observed_at": "2026-08-13T00:00:00Z",
+        "accuracy_basis": (
+            "F1-based proxy on the synthetic contract set at a 0.25 confidence "
+            "operating point — not COCO mAP"
+        ),
         "pipeline_version": __version__,
         "model": {
             "name": MODEL_NAME,
@@ -77,6 +81,15 @@ def observed_run() -> dict[str, Any]:
             "accuracy": "contract-set mAP proxy, not COCO mAP and not a Roboflow/SKU-110K result",
             "arm64": "QEMU trend lane only; no physical device measurement",
             "serving": "FastAPI contract, no loaded YOLO runtime in the default offline path",
+        },
+        "lineage": {
+            "source_commit": None,
+            "budget_commit": None,
+            "run_commit": None,
+            "config_sha256": None,
+            "dataset_fingerprint": dataset_hash(),
+            "calibration_hash": None,
+            "wandb_run": None,
         },
     }
     run["fingerprint"] = sha256_json(

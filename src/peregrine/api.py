@@ -74,6 +74,6 @@ def _target_key(value: str) -> str:
         "onnx": "x86_onnx_fp32",
         "int8": "x86_tflite_int8",
         "tflite": "x86_tflite_int8",
-        "arm64": "arm64_qemu_tflite_int8",
+        "arm64": "arm64_tflite_int8",
     }
     return aliases.get(value, value)

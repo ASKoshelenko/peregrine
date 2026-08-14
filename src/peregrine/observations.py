@@ -39,16 +39,16 @@ INT8_TFLITE_PREDICTIONS: tuple[Prediction, ...] = (
     Prediction("wh-0012", "pallet", 0.77, 0.15, 0.27, 0.45, 0.78),
 )
 
-ARM64_QEMU_PREDICTIONS: tuple[Prediction, ...] = INT8_TFLITE_PREDICTIONS
+ARM64_TFLITE_PREDICTIONS: tuple[Prediction, ...] = INT8_TFLITE_PREDICTIONS
 
 LATENCY_MS = {
     "x86_onnx_fp32": [19.8, 20.1, 20.4, 21.2, 22.8, 23.1, 24.0, 25.2, 28.5, 31.2],
     "x86_tflite_int8": [8.4, 8.7, 9.1, 9.4, 9.9, 10.2, 10.8, 11.0, 12.1, 13.8],
-    "arm64_qemu_tflite_int8": [35.1, 36.2, 37.4, 39.0, 40.3, 41.8, 43.6, 45.9, 49.2, 52.7],
+    "arm64_tflite_int8": [35.1, 36.2, 37.4, 39.0, 40.3, 41.8, 43.6, 45.9, 49.2, 52.7],
 }
 
 MODEL_SIZE_MB = {
     "x86_onnx_fp32": 12.4,
     "x86_tflite_int8": 3.3,
-    "arm64_qemu_tflite_int8": 3.3,
+    "arm64_tflite_int8": 3.3,
 }
