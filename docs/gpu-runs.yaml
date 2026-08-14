@@ -30,4 +30,17 @@ quota:
     Treat Vertex T4 as unavailable until a positive limit is independently confirmed; use Colab
     T4 plus a bounded Vertex CPU smoke run. No trial-to-paid upgrade is authorized.
 
-runs: []
+runs:
+  - id: colab-t4-baseline-001
+    platform: colab-free-t4
+    question: >-
+      What mAP@0.50 and mAP@0.50:0.95 does a 30-epoch YOLOv8n fine-tune reach on
+      warehouse-assets-2-v1, and which checkpoint should conversion consume?
+    registered_at: "2026-08-14"
+    max_duration_min: 120
+    estimated_cost_usd: 0
+    started_at: null
+    ended_at: null
+    observed_cost_usd: null
+    credit_covered: null
+    answer: null
