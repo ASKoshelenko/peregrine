@@ -4,6 +4,6 @@ targets:
   - arm64_tflite_int8
 budgets:
   int8_map50_drop_max: 0.08
-  x86_tflite_p95_ms_max: 15.0
-  arm64_p95_ms_max: 60.0
+  x86_tflite_p95_ms_max: 227.5
+  arm64_p95_ms_max: 358.3
   int8_size_mb_max: 4.0

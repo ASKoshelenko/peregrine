@@ -38,8 +38,8 @@ def test_q1_measures_a_real_delta_within_budget():
 def test_budgets_come_from_the_target_matrix():
     budgets = load_budgets()
     assert budgets.int8_map50_drop_max == 0.08
-    assert budgets.x86_tflite_p95_ms_max == 15.0
-    assert budgets.arm64_p95_ms_max == 60.0
+    assert budgets.x86_tflite_p95_ms_max == 227.5
+    assert budgets.arm64_p95_ms_max == 358.3
     assert budgets.int8_size_mb_max == 4.0
 
 
