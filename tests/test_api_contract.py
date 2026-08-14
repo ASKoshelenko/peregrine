@@ -1,4 +1,5 @@
 import io
+import json
 from asyncio import run
 
 from fastapi import HTTPException
@@ -30,11 +31,23 @@ def test_platform_contract_is_live_and_non_secret(monkeypatch) -> None:
     assert response.max_instances == 1
 
 
+def test_platform_reads_deployed_snapshot_without_repository_configs(monkeypatch, tmp_path) -> None:
+    snapshot = json.loads((api.Path("artifacts/observed/latest.json")).read_text())
+    artifact_dir = tmp_path / "artifacts"
+    (artifact_dir / "observed").mkdir(parents=True)
+    (artifact_dir / "observed/latest.json").write_text(json.dumps(snapshot))
+    monkeypatch.setattr(api, "_artifact_dir", artifact_dir)
+    monkeypatch.setattr(api, "_detector", _Detector())
+    monkeypatch.chdir(tmp_path)
+    assert platform().run_id == snapshot["run_id"]
+
+
 def test_predict_returns_lineage_and_detections():
     response = predict(PredictRequest(image_id="wh-0005", target="int8"))
     assert response.target == "x86_tflite_int8"
     assert len(response.dataset_hash) == 64
-    assert response.detections
+    assert response.detections == []
+    assert "no per-image predictions" in response.boundary
 
 
 class _Detector:

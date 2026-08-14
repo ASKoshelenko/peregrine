@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +14,6 @@ from pydantic import BaseModel, Field
 
 from peregrine import __version__
 from peregrine.inference import InferenceError, OnnxDetector
-from peregrine.pipeline import observed_run
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -124,7 +125,7 @@ def readyz() -> dict[str, object]:
 @app.get("/api/platform", response_model=PlatformResponse)
 def platform() -> PlatformResponse:
     """Expose non-secret facts about the exact serving revision and its parents."""
-    run = observed_run()
+    run = _observed_snapshot()
     detector = _get_detector()
     return PlatformResponse(
         service=os.getenv("K_SERVICE", "peregrine-local"),
@@ -187,26 +188,18 @@ async def predict_image(
 @app.post("/predict", response_model=PredictResponse)
 def predict(request: PredictRequest) -> PredictResponse:
     """Serve recorded contract predictions for an image id."""
-    run = observed_run()
+    run = _observed_snapshot()
     target_key = _target_key(request.target)
-    target = run["targets"][target_key]
-    detections: list[Detection] = []
-    for item in target["predictions"]:
-        if item["image_id"] == request.image_id:
-            detections.append(
-                Detection(
-                    label=item["label"],
-                    confidence=item["confidence"],
-                    box=[item["x1"], item["y1"], item["x2"], item["y2"]],
-                )
-            )
+    if target_key not in run["targets"]:
+        raise HTTPException(status_code=404, detail="target is not present in observed evidence")
     return PredictResponse(
         model_version=str(run["fingerprint"]),
         dataset_hash=str(run["dataset_hash"]),
         target=target_key,
-        detections=detections,
+        detections=[],
         boundary=(
-            "recorded contract predictions; use /api/predict for live uploaded-image inference"
+            "aggregate recorded evidence has no per-image predictions; "
+            "use /api/predict for live uploaded-image inference"
         ),
     )
 
@@ -224,6 +217,18 @@ def _target_key(value: str) -> str:
 
 def _model_path() -> Path:
     return Path(os.getenv("PEREGRINE_MODEL_PATH", "models/best.onnx"))
+
+
+def _observed_snapshot() -> dict[str, Any]:
+    """Read the immutable deployed snapshot without re-evaluating repository-only gates."""
+    path = _artifact_dir / "observed/latest.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=503, detail="observed evidence is unavailable") from error
+    if not isinstance(value, dict) or not isinstance(value.get("lineage"), dict):
+        raise HTTPException(status_code=503, detail="observed evidence is invalid")
+    return value
 
 
 def _get_detector() -> OnnxDetector:
