@@ -2,7 +2,7 @@
   "schema_version": 1,
   "boundary": {
     "en": "Every stage cites the repository file it comes from. DEFINED pipelines are committed contracts this page never executes, RECORDED values come from retained runs, and LIVE values are polled from the running service.",
-    "uk": "Кожен етап посилається на файл репозиторію, з якого він походить. DEFINED — це закомічені контракти, які сторінка ніколи не виконує, RECORDED — значення зі збережених прогонів, LIVE — значення, опитані в живого сервісу."
+    "uk": "Кожен етап посилається на файл репозиторію, з якого він походить. DEFINED — це закомічені контракти, які сторінка ніколи не виконує, RECORDED — значення зі збережених запусків, LIVE — значення, опитані в живого сервісу."
   },
   "pipelines": [
     {
@@ -13,7 +13,7 @@
       "source": ".github/workflows/ci.yml#L2-L4",
       "boundary": {
         "en": "The workflow is committed and executable. This page plays step order only — it never triggers an Actions run and spends no Actions minutes.",
-        "uk": "Workflow закомічено, і він виконуваний. Сторінка програє лише порядок кроків — вона не запускає run в Actions і не витрачає хвилини Actions."
+        "uk": "Workflow закомічений і виконуваний. Сторінка програє лише порядок кроків — вона не запускає run в Actions і не витрачає хвилини Actions."
       },
       "meta": [
         { "label": { "en": "permissions", "uk": "permissions" }, "value": "contents: read", "source": ".github/workflows/ci.yml#L6-L7" },
@@ -45,7 +45,7 @@
           "id": "install",
           "name": { "en": "Install from source", "uk": "Встановити з коду" },
           "cmd": "python -m pip install -e '.[dev]'",
-          "artifact": { "en": "the package and its dev extras, installed editable", "uk": "пакет і його dev-extras у editable-режимі" },
+          "artifact": { "en": "the package and its dev extras, installed editable", "uk": "пакет і його dev-extras в editable-режимі" },
           "outcome": "DEFINED",
           "source": ".github/workflows/ci.yml#L21",
           "depends_on": ["setup-python"],
@@ -55,7 +55,7 @@
           "id": "lint",
           "name": { "en": "Lint", "uk": "Лінт" },
           "cmd": "ruff check src tests",
-          "control": { "en": "style and correctness lint over src and tests", "uk": "лінт стилю й коректності по src і tests" },
+          "control": { "en": "style and correctness lint over src and tests", "uk": "лінт стилю й коректності в src і tests" },
           "outcome": "DEFINED",
           "source": ".github/workflows/ci.yml#L22",
           "depends_on": ["install"],
@@ -75,7 +75,7 @@
           "id": "typecheck",
           "name": { "en": "Type-check", "uk": "Перевірити типи" },
           "cmd": "mypy",
-          "control": { "en": "strict = true over the packaged source (pyproject.toml#L61-L68)", "uk": "strict = true по коду пакета (pyproject.toml#L61-L68)" },
+          "control": { "en": "strict = true over the packaged source (pyproject.toml#L61-L68)", "uk": "strict = true для коду пакета (pyproject.toml#L61-L68)" },
           "outcome": "DEFINED",
           "source": ".github/workflows/ci.yml#L24",
           "depends_on": ["format"],
@@ -115,7 +115,7 @@
         "uk": "Слот для OIDC/WIF і Vertex Custom Training. Не підключений, доки не існує GCP-проєкт peregrine."
       },
       "meta": [
-        { "label": { "en": "default lane", "uk": "лейн за замовчуванням" }, "value": "vertex-cpu-smoke", "source": ".github/workflows/train.yml#L8" },
+        { "label": { "en": "default lane", "uk": "lane за замовчуванням" }, "value": "vertex-cpu-smoke", "source": ".github/workflows/train.yml#L8" },
         { "label": { "en": "permissions", "uk": "permissions" }, "value": "id-token: write", "source": ".github/workflows/train.yml#L10-L12" }
       ],
       "stages": [
@@ -133,7 +133,7 @@
           "name": { "en": "Declare the boundary", "uk": "Оголосити межу" },
           "cmd": "echo \"OIDC/WIF and Vertex Custom Training slot. Not wired until GCP project peregrine exists.\"",
           "artifact": { "en": "the only step this workflow runs today: it prints its own boundary", "uk": "єдиний крок, який цей workflow виконує сьогодні: він друкує власну межу" },
-          "control": { "en": "the lanes below are retained evidence from runs made outside this workflow", "uk": "контури нижче — це збережені докази прогонів, зроблених поза цим workflow" },
+          "control": { "en": "the lanes below are retained evidence from runs made outside this workflow", "uk": "контури нижче — це збережені докази запусків, зроблених поза цим workflow" },
           "outcome": "DEFINED",
           "source": ".github/workflows/train.yml#L23-L24",
           "depends_on": ["checkout"],
@@ -154,7 +154,7 @@
         {
           "id": "colab",
           "name": { "en": "Colab T4 baseline", "uk": "Baseline на Colab T4" },
-          "artifact": { "en": "run j2t2234t · 30 epochs · observed cost $0", "uk": "run j2t2234t · 30 епох · зафіксована вартість $0" },
+          "artifact": { "en": "run j2t2234t · 30 epochs · observed cost $0", "uk": "run j2t2234t · 30 епох · виміряна вартість $0" },
           "control": { "en": "seed 42 · deterministic: true (configs/train/baseline.yaml#L1-L6)", "uk": "seed 42 · deterministic: true (configs/train/baseline.yaml#L1-L6)" },
           "outcome": "PASS",
           "truth": "RECORDED",
@@ -186,7 +186,7 @@
           "id": "vertex",
           "name": { "en": "Vertex CPU smoke retry", "uk": "Повтор Vertex CPU smoke" },
           "artifact": { "en": "retry CustomJob 1864582338420146176 · local = cloud fingerprint 5e345958…", "uk": "повтор CustomJob 1864582338420146176 · локальний = хмарний fingerprint 5e345958…" },
-          "control": { "en": "one CPU-only epoch through the same packaged CLI · no accuracy claim", "uk": "одна епоха лише на CPU через той самий пакетний CLI · без тверджень про точність" },
+          "control": { "en": "one CPU-only epoch through the same packaged CLI · no accuracy claim", "uk": "одна епоха лише на CPU через той самий запакований CLI · без тверджень про точність" },
           "outcome": "PASS",
           "truth": "RECORDED",
           "source": "docs/gpu-runs.yaml#L52-L73",
@@ -210,13 +210,13 @@
     },
     {
       "id": "release",
-      "name": { "en": "Target matrix", "uk": "Матриця таргетів" },
+      "name": { "en": "Target matrix", "uk": "Матриця цілей" },
       "truth": "DEFINED",
       "trigger": "workflow_dispatch",
       "source": ".github/workflows/release.yml#L13-L26",
       "boundary": {
         "en": "The matrix is committed and executable. The numbers below are RECORDED from the retained real run — no Actions minutes were spent to produce them.",
-        "uk": "Матриця закомічена й виконувана. Числа нижче — RECORDED зі збереженого реального прогону; хвилини Actions на них не витрачалися."
+        "uk": "Матриця закомічена й виконувана. Числа нижче — RECORDED зі збереженого реального запуску; хвилини Actions на них не витрачалися."
       },
       "meta": [
         { "label": { "en": "strategy", "uk": "strategy" }, "value": "fail-fast: false", "source": ".github/workflows/release.yml#L16" },
@@ -266,7 +266,7 @@
           "id": "summary-x86_onnx_fp32",
           "name": { "en": "Summarize x86 ONNX FP32", "uk": "Підсумок x86 ONNX FP32" },
           "cmd": "PYTHONPATH=src python -m peregrine.cli summary artifacts/observed/latest.json --target ${{ matrix.target }}",
-          "artifact": { "en": "reference lane · the precision every other target is compared against", "uk": "еталонний контур · точність, з якою порівнюють решту таргетів" },
+          "artifact": { "en": "reference lane · the precision every other target is compared against", "uk": "еталонний контур · точність, з якою порівнюють решту цілей" },
           "control": { "en": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-x86_onnx_fp32.json)", "uk": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-x86_onnx_fp32.json)" },
           "outcome": "DEFINED",
           "source": ".github/workflows/release.yml#L26",
@@ -338,13 +338,13 @@
     },
     {
       "id": "deploy",
-      "name": { "en": "Production rollout", "uk": "Розкатка в production" },
+      "name": { "en": "Production rollout", "uk": "Викат у production" },
       "truth": "DEFINED",
       "trigger": "workflow_dispatch",
       "source": ".github/workflows/deploy.yml#L13-L20",
       "boundary": {
         "en": "Cloud Run deploy slot. Requires peregrine-deploy WIF identity and a saved model version.",
-        "uk": "Слот для деплою в Cloud Run. Потребує identity peregrine-deploy через WIF і збереженої версії моделі."
+        "uk": "Слот для деплою в Cloud Run. Потребує ідентичності peregrine-deploy через WIF і збереженої версії моделі."
       },
       "meta": [
         { "label": { "en": "environment", "uk": "environment" }, "value": "demo-production", "source": ".github/workflows/deploy.yml#L15" },
@@ -365,7 +365,7 @@
           "id": "boundary",
           "name": { "en": "Declare the boundary", "uk": "Оголосити межу" },
           "cmd": "echo \"Cloud Run deploy slot. Requires peregrine-deploy WIF identity and a saved model version.\"",
-          "artifact": { "en": "the running revision on this page was applied by a reviewed terraform apply, not by this workflow", "uk": "поточна ревізія на цій сторінці застосована переглянутим terraform apply, а не цим workflow" },
+          "artifact": { "en": "the running revision on this page was applied by a reviewed terraform apply, not by this workflow", "uk": "поточну ревізію на цій сторінці застосував terraform apply після ревʼю, а не цей workflow" },
           "outcome": "DEFINED",
           "source": ".github/workflows/deploy.yml#L19-L20",
           "depends_on": ["checkout"],
@@ -410,7 +410,7 @@
         },
         {
           "id": "sa",
-          "name": { "en": "Runtime identity", "uk": "Runtime-identity" },
+          "name": { "en": "Runtime identity", "uk": "Runtime-ідентичність" },
           "artifact": { "en": "peregrine-runtime · one project role", "uk": "peregrine-runtime · одна роль у проєкті" },
           "control": { "en": "One project role, roles/aiplatform.user, for the cloud scope call only: the released model is bundled in the image.", "uk": "Одна роль у проєкті, roles/aiplatform.user, лише для хмарного scope-виклику: випущена модель вкладена в образ." },
           "outcome": "PASS",
@@ -479,7 +479,7 @@
     },
     {
       "id": "image",
-      "name": { "en": "Serving image", "uk": "Образ для сервінгу" },
+      "name": { "en": "Serving image", "uk": "Образ для обслуговування" },
       "truth": "RECORDED",
       "trigger": "manual build · push to peregrine-serving",
       "source": "Dockerfile#L1-L27",
@@ -492,7 +492,7 @@
           "id": "build",
           "name": { "en": "Build the wheels", "uk": "Зібрати wheels" },
           "cmd": "python -m pip wheel --no-cache-dir --wheel-dir /wheels '.[serving]'",
-          "artifact": { "en": "serving wheels built in a throwaway python:3.12-slim stage", "uk": "wheels для сервінгу, зібрані в одноразовій стадії python:3.12-slim" },
+          "artifact": { "en": "serving wheels built in a throwaway python:3.12-slim stage", "uk": "wheels для обслуговування, зібрані в одноразовій стадії python:3.12-slim" },
           "control": { "en": "only the serving extra reaches the runtime layer", "uk": "у runtime-шар потрапляє лише extra serving" },
           "outcome": "PASS",
           "source": "Dockerfile#L1-L6",
@@ -536,7 +536,7 @@
         {
           "id": "dataset-reject",
           "name": { "en": "First export refused", "uk": "Перший експорт відхилено" },
-          "artifact": { "en": "its real label space could not satisfy pallet/carton", "uk": "його реальний простір міток не міг покрити pallet/carton" },
+          "artifact": { "en": "its real label space could not satisfy pallet/carton", "uk": "його реальний простір міток не відповідав парі pallet/carton" },
           "control": { "en": "class mapping is declared before the snapshot is accepted", "uk": "мапінг класів декларується до того, як snapshot приймають" },
           "outcome": "BLOCK",
           "source": "configs/data/warehouse.yaml#L13-L18 + site/platform-events.json#dataset-reject",
@@ -558,7 +558,7 @@
         {
           "id": "dvc",
           "name": { "en": "Version the snapshot", "uk": "Версіонувати snapshot" },
-          "artifact": { "en": "dataset fingerprint 0c46212dc22a…", "uk": "fingerprint датасету 0c46212dc22a…" },
+          "artifact": { "en": "dataset fingerprint 0c46212dc22a…", "uk": "fingerprint даних 0c46212dc22a…" },
           "control": { "en": "DVC pointer in Git, objects in gs://peregrine-edge-mlops-dvc", "uk": "покажчик DVC у Git, обʼєкти в gs://peregrine-edge-mlops-dvc" },
           "outcome": "PASS",
           "source": ".dvc/config#L1-L8 + data/processed/warehouse.dvc#L1-L6",
@@ -595,7 +595,7 @@
         {
           "id": "train",
           "name": { "en": "Train the baseline", "uk": "Навчити baseline" },
-          "artifact": { "en": "run j2t2234t · 30 epochs · observed cost $0", "uk": "run j2t2234t · 30 епох · зафіксована вартість $0" },
+          "artifact": { "en": "run j2t2234t · 30 epochs · observed cost $0", "uk": "run j2t2234t · 30 епох · виміряна вартість $0" },
           "control": { "en": "seed 42 · deterministic: true · pinned commit", "uk": "seed 42 · deterministic: true · закріплений коміт" },
           "outcome": "PASS",
           "source": "docs/gpu-runs.yaml#L34-L51",
@@ -616,7 +616,7 @@
         },
         {
           "id": "convert",
-          "name": { "en": "Export target artifacts", "uk": "Експортувати артефакти таргетів" },
+          "name": { "en": "Export target artifacts", "uk": "Експортувати артефакти цілей" },
           "artifact": { "en": "12.27 MB ONNX → 3.33 MB TFLite INT8", "uk": "12.27 MB ONNX → 3.33 MB TFLite INT8" },
           "control": { "en": "Ultralytics 8.4.120 · 200 calibration images · per-channel weights · calibration 90dbeb2b…", "uk": "Ultralytics 8.4.120 · 200 калібрувальних зображень · per-channel ваги · калібрування 90dbeb2b…" },
           "outcome": "PASS",
@@ -631,9 +631,9 @@
         },
         {
           "id": "evaluate",
-          "name": { "en": "Re-evaluate every precision", "uk": "Переоцінити кожну точність" },
+          "name": { "en": "Re-evaluate every precision", "uk": "Переоцінити кожен рівень точності" },
           "artifact": { "en": "11 images · 196 instances · mAP@0.50 0.9713 → 0.9451", "uk": "11 зображень · 196 екземплярів · mAP@0.50 0.9713 → 0.9451" },
-          "control": { "en": "one evaluator across precisions; the INT8 export is judged as a new model", "uk": "один оцінювач для всіх точностей; INT8-експорт судять як нову модель" },
+          "control": { "en": "one evaluator across precisions; the INT8 export is judged as a new model", "uk": "один оцінювач для всіх рівнів точності; INT8-експорт судять як нову модель" },
           "outcome": "PASS",
           "source": "artifacts/real/eval-x86_onnx_fp32.json + artifacts/real/eval-x86_tflite_int8.json",
           "depends_on": ["convert"],
@@ -647,7 +647,7 @@
         },
         {
           "id": "benchmark",
-          "name": { "en": "Measure every target", "uk": "Виміряти кожен таргет" },
+          "name": { "en": "Measure every target", "uk": "Виміряти кожну ціль" },
           "artifact": { "en": "182.0 ms / 177.2 ms p95", "uk": "182.0 ms / 177.2 ms p95" },
           "control": { "en": "batch 1 · 640 input · threads 1 · warmup 10 · samples 100 · host provenance retained", "uk": "batch 1 · вхід 640 · threads 1 · warmup 10 · samples 100 · походження хоста збережено" },
           "outcome": "PASS",
@@ -746,9 +746,9 @@
         },
         {
           "id": "gate-red",
-          "name": { "en": "Pre-rebaseline gate", "uk": "Гейт до перебазування бюджетів" },
+          "name": { "en": "Pre-rebaseline gate", "uk": "Гейт до re-baseline бюджетів" },
           "artifact": { "en": "Q2 182.0363 ms ≤ 15.0 ms FAIL · Q3 286.6515 ms ≤ 60.0 ms FAIL", "uk": "Q2 182.0363 ms ≤ 15.0 ms FAIL · Q3 286.6515 ms ≤ 60.0 ms FAIL" },
-          "control": { "en": "fixture-era budgets, preserved instead of deleted or relabeled", "uk": "бюджети епохи фікстур, збережені замість видалення чи перейменування" },
+          "control": { "en": "fixture-era budgets, preserved instead of deleted or relabeled", "uk": "бюджети з часів фікстур, збережені замість видалення чи перейменування" },
           "outcome": "BLOCK",
           "source": "docs/gates/shakedown-block.md#L10-L22",
           "depends_on": ["benchmark"],
@@ -758,8 +758,8 @@
         {
           "id": "gate",
           "name": { "en": "Execute Q1—Q5", "uk": "Виконати Q1—Q5" },
-          "artifact": { "en": "PROMOTE · failed none", "uk": "PROMOTE · провалених немає" },
-          "control": { "en": "first-failure refusal · the budget commit strictly precedes the run commit", "uk": "відмова на першому провалі · коміт із бюджетами суворо передує коміту прогону" },
+          "artifact": { "en": "PROMOTE · failed none", "uk": "PROMOTE · без провалів" },
+          "control": { "en": "first-failure refusal · the budget commit strictly precedes the run commit", "uk": "відмова на першому провалі · коміт із бюджетами суворо передує коміту запуску" },
           "outcome": "PASS",
           "source": "configs/targets/matrix.yaml#L5-L9 + artifacts/observed/latest.json",
           "depends_on": ["observe", "gate-red"],
@@ -802,7 +802,7 @@
       "source": "src/peregrine/api.py#L210-L234",
       "boundary": {
         "en": "hop timing illustrative — only total request time and inference_ms are measured",
-        "uk": "тайминги хопів ілюстративні — вимірюються лише загальний час запиту та inference_ms"
+        "uk": "тривалість хопів ілюстративна — вимірюються лише загальний час запиту та inference_ms"
       },
       "meta": [
         { "label": { "en": "upload cap", "uk": "ліміт завантаження" }, "value": "5 MiB", "source": "src/peregrine/api.py#L25" },
@@ -886,19 +886,19 @@
     {
       "from": "model.observe",
       "to": "release.summary-x86_onnx_fp32",
-      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, читаються по таргету" },
+      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, зчитувані для кожної цілі" },
       "source": ".github/workflows/release.yml#L26"
     },
     {
       "from": "model.observe",
       "to": "release.summary-x86_tflite_int8",
-      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, читаються по таргету" },
+      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, зчитувані для кожної цілі" },
       "source": ".github/workflows/release.yml#L26"
     },
     {
       "from": "model.observe",
       "to": "release.summary-arm64_tflite_int8",
-      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, читаються по таргету" },
+      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, зчитувані для кожної цілі" },
       "source": ".github/workflows/release.yml#L26"
     },
     {
@@ -922,7 +922,7 @@
     {
       "from": "train.colab",
       "to": "model.train",
-      "artifact": { "en": "the retained Colab run behind the RECORDED lane", "uk": "збережений прогін у Colab, що стоїть за RECORDED-контуром" },
+      "artifact": { "en": "the retained Colab run behind the RECORDED lane", "uk": "збережений запуск у Colab, що стоїть за RECORDED-контуром" },
       "source": "docs/gpu-runs.yaml#L34-L51"
     }
   ]
