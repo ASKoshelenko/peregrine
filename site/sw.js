@@ -1,4 +1,4 @@
-const V = "control-room-8";
+const V = "control-room-9";
 const CACHE = "peregrine-shell-" + V;
 const SHELL = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest", "/peregrine-mark.svg", "/assets/warehouse-frame.svg", "/assets/samples/sample-1.jpg", "/assets/samples/sample-2.jpg", "/assets/samples/sample-3.jpg", "/platform-events.json", "/pipelines.json", "/artifacts/observed/latest.json", "/components/platform-event-model.js", "/components/pipeline-model.js", "/components/pwa-shell.js", "/components/motion.js", "/components/i18n.js", "/components/store.js", "/components/router.js", "/components/gloss.js", "/components/rail.js", "/components/lane.js", "/components/console.js", "/components/sections/hero.js", "/components/sections/platform.js", "/components/sections/conveyor.js", "/components/sections/control-room.js", "/components/sections/gates.js", "/components/sections/detector.js", "/components/sections/evidence.js", "/components/sections/ops.js", "/data/i18n.en.js", "/data/i18n.uk.js", "/data/content.js"];
 const SHELL_PATHS = new Set(SHELL);

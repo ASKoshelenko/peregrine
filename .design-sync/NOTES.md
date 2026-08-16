@@ -9,7 +9,13 @@
 - Owner's law for any design work produced with this DS (also in the conventions header): refine the unified system; never remove evidence surfaces (rail, pipelines, BLOCK events, truth chips) or the infra-creation story.
 
 ## Known render warns
-- (none recorded yet)
+- (none — render check 16/16 clean after the console-chip specificity fix)
+
+## Wave-1 learnings (folded 2026-08-16)
+- Capture geometry: ?story= renders one export into .ds-single at ~852px wide, clipped ~700px tall, with min-width:900 media active — horizontal Lane fits 3 stages; 4+ stages use horizontal={false} (a real site orientation).
+- GateRow cannot express Q5 (props typed number/number; real Q5 budget is the string "sha256") — 4 of 5 gates representable; never fake a numeric stand-in.
+- GateRow prints raw JS numbers (4.0 → "≤ 4") — cosmetic drift from the site's fmtVal; acceptable in previews.
+- FIXED design-system bug found by preview work: `.console-line span{color:var(--signal)}` outranked `.truth-live`, rendering loud LIVE chips green-on-green. Fixed with child combinators (`.console-line>span` etc.) in BOTH site/styles.css and ui-kit/styles.css; ships to prod as control-room-9.
 
 ## Re-sync risks
 - `ui-kit/styles.css` drifts from `site/styles.css` silently — diff the token block + component rules on every re-sync.

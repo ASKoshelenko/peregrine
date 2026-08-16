@@ -5,5 +5,14 @@
   "globalName": "Peregrine",
   "srcDir": "ui-kit/src",
   "buildCmd": "npm --prefix ui-kit run build",
-  "cssEntry": "styles.css"
+  "cssEntry": "styles.css",
+  "overrides": {
+    "ChapterHead": {
+      "cardMode": "column"
+    },
+    "VerdictCard": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
 }
