@@ -1,0 +1,929 @@
+{
+  "schema_version": 1,
+  "boundary": {
+    "en": "Every stage cites the repository file it comes from. DEFINED pipelines are committed contracts this page never executes, RECORDED values come from retained runs, and LIVE values are polled from the running service.",
+    "uk": "Кожен етап посилається на файл репозиторію, з якого він походить. DEFINED — це закомічені контракти, які сторінка ніколи не виконує, RECORDED — значення зі збережених прогонів, LIVE — значення, опитані в живого сервісу."
+  },
+  "pipelines": [
+    {
+      "id": "ci",
+      "name": { "en": "Pull-request quality", "uk": "Якість pull request" },
+      "truth": "DEFINED",
+      "trigger": "pull_request · workflow_dispatch",
+      "source": ".github/workflows/ci.yml#L2-L4",
+      "boundary": {
+        "en": "The workflow is committed and executable. This page plays step order only — it never triggers an Actions run and spends no Actions minutes.",
+        "uk": "Workflow закомічено, і він виконуваний. Сторінка програє лише порядок кроків — вона не запускає run в Actions і не витрачає хвилини Actions."
+      },
+      "meta": [
+        { "label": { "en": "permissions", "uk": "permissions" }, "value": "contents: read", "source": ".github/workflows/ci.yml#L6-L7" },
+        { "label": { "en": "concurrency", "uk": "concurrency" }, "value": "cancel-in-progress: true", "source": ".github/workflows/ci.yml#L9-L11" },
+        { "label": { "en": "runner", "uk": "runner" }, "value": "ubuntu-latest", "source": ".github/workflows/ci.yml#L15" }
+      ],
+      "stages": [
+        {
+          "id": "checkout",
+          "name": { "en": "Check out the commit", "uk": "Отримати коміт" },
+          "cmd": "actions/checkout@v4",
+          "artifact": { "en": "the pull-request commit tree", "uk": "дерево коміту з pull request" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L17",
+          "depends_on": [],
+          "pace_ms": 600
+        },
+        {
+          "id": "setup-python",
+          "name": { "en": "Pin the interpreter", "uk": "Зафіксувати інтерпретатор" },
+          "cmd": "actions/setup-python@v5",
+          "artifact": { "en": "toolchain pinned by python-version: '3.12'", "uk": "тулчейн, зафіксований через python-version: '3.12'" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L18-L20",
+          "depends_on": ["checkout"],
+          "pace_ms": 600
+        },
+        {
+          "id": "install",
+          "name": { "en": "Install from source", "uk": "Встановити з коду" },
+          "cmd": "python -m pip install -e '.[dev]'",
+          "artifact": { "en": "the package and its dev extras, installed editable", "uk": "пакет і його dev-extras у editable-режимі" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L21",
+          "depends_on": ["setup-python"],
+          "pace_ms": 600
+        },
+        {
+          "id": "lint",
+          "name": { "en": "Lint", "uk": "Лінт" },
+          "cmd": "ruff check src tests",
+          "control": { "en": "style and correctness lint over src and tests", "uk": "лінт стилю й коректності по src і tests" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L22",
+          "depends_on": ["install"],
+          "pace_ms": 600
+        },
+        {
+          "id": "format",
+          "name": { "en": "Check formatting", "uk": "Перевірити форматування" },
+          "cmd": "ruff format --check src tests",
+          "control": { "en": "formatting is verified, never rewritten by CI", "uk": "форматування перевіряється, а не переписується в CI" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L23",
+          "depends_on": ["lint"],
+          "pace_ms": 600
+        },
+        {
+          "id": "typecheck",
+          "name": { "en": "Type-check", "uk": "Перевірити типи" },
+          "cmd": "mypy",
+          "control": { "en": "strict = true over the packaged source (pyproject.toml#L61-L68)", "uk": "strict = true по коду пакета (pyproject.toml#L61-L68)" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L24",
+          "depends_on": ["format"],
+          "pace_ms": 600
+        },
+        {
+          "id": "test",
+          "name": { "en": "Run the suite", "uk": "Запустити тести" },
+          "cmd": "pytest",
+          "control": { "en": "the committed test suite under tests/", "uk": "закомічений набір тестів у tests/" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L25",
+          "depends_on": ["typecheck"],
+          "pace_ms": 600
+        },
+        {
+          "id": "observe",
+          "name": { "en": "Recompose the evidence", "uk": "Перезібрати докази" },
+          "cmd": "make observe",
+          "artifact": { "en": "artifacts/observed/latest.json + artifacts/model-cards/peregrine-yolov8n-int8.md", "uk": "artifacts/observed/latest.json + artifacts/model-cards/peregrine-yolov8n-int8.md" },
+          "control": { "en": "the Makefile target composes the retained fragments with --lane real (Makefile#L18-L23)", "uk": "ціль Makefile збирає збережені фрагменти з --lane real (Makefile#L18-L23)" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/ci.yml#L26",
+          "depends_on": ["test"],
+          "pace_ms": 600
+        }
+      ]
+    },
+    {
+      "id": "train",
+      "name": { "en": "Model qualification", "uk": "Кваліфікація моделі" },
+      "truth": "DEFINED",
+      "trigger": "workflow_dispatch · lane: [vertex-t4, vertex-cpu-smoke, colab-recorded]",
+      "source": ".github/workflows/train.yml#L3-L8",
+      "boundary": {
+        "en": "OIDC/WIF and Vertex Custom Training slot. Not wired until GCP project peregrine exists.",
+        "uk": "Слот для OIDC/WIF і Vertex Custom Training. Не підключений, доки не існує GCP-проєкт peregrine."
+      },
+      "meta": [
+        { "label": { "en": "default lane", "uk": "лейн за замовчуванням" }, "value": "vertex-cpu-smoke", "source": ".github/workflows/train.yml#L8" },
+        { "label": { "en": "permissions", "uk": "permissions" }, "value": "id-token: write", "source": ".github/workflows/train.yml#L10-L12" }
+      ],
+      "stages": [
+        {
+          "id": "checkout",
+          "name": { "en": "Check out the commit", "uk": "Отримати коміт" },
+          "cmd": "actions/checkout@v4",
+          "outcome": "DEFINED",
+          "source": ".github/workflows/train.yml#L22",
+          "depends_on": [],
+          "pace_ms": 600
+        },
+        {
+          "id": "boundary",
+          "name": { "en": "Declare the boundary", "uk": "Оголосити межу" },
+          "cmd": "echo \"OIDC/WIF and Vertex Custom Training slot. Not wired until GCP project peregrine exists.\"",
+          "artifact": { "en": "the only step this workflow runs today: it prints its own boundary", "uk": "єдиний крок, який цей workflow виконує сьогодні: він друкує власну межу" },
+          "control": { "en": "the lanes below are retained evidence from runs made outside this workflow", "uk": "контури нижче — це збережені докази прогонів, зроблених поза цим workflow" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/train.yml#L23-L24",
+          "depends_on": ["checkout"],
+          "pace_ms": 600
+        },
+        {
+          "id": "colab-red",
+          "name": { "en": "Colab T4 preflight", "uk": "Передстартова перевірка Colab T4" },
+          "artifact": { "en": "the first attempt stopped before any epoch: the dataset path contract failed", "uk": "перша спроба зупинилась до першої епохи: контракт шляху до датасету не виконався" },
+          "control": { "en": "prepare_training_run refuses before allocating resources (src/peregrine/training.py#L29-L38)", "uk": "prepare_training_run відмовляє ще до виділення ресурсів (src/peregrine/training.py#L29-L38)" },
+          "outcome": "BLOCK",
+          "truth": "RECORDED",
+          "source": "src/peregrine/training.py#L29-L38 + site/platform-events.json#colab-red",
+          "depends_on": [],
+          "lane": "colab-recorded",
+          "pace_ms": 1300
+        },
+        {
+          "id": "colab",
+          "name": { "en": "Colab T4 baseline", "uk": "Baseline на Colab T4" },
+          "artifact": { "en": "run j2t2234t · 30 epochs · observed cost $0", "uk": "run j2t2234t · 30 епох · зафіксована вартість $0" },
+          "control": { "en": "seed 42 · deterministic: true (configs/train/baseline.yaml#L1-L6)", "uk": "seed 42 · deterministic: true (configs/train/baseline.yaml#L1-L6)" },
+          "outcome": "PASS",
+          "truth": "RECORDED",
+          "source": "docs/gpu-runs.yaml#L34-L51",
+          "depends_on": ["colab-red"],
+          "lane": "colab-recorded",
+          "duration_recorded": "8 m 45 s",
+          "pace_ms": 480,
+          "links": [
+            {
+              "label": { "en": "full telemetry retained in W&B ↗", "uk": "повна телеметрія збережена у W&B ↗" },
+              "href": "https://wandb.ai/d-peregrine/peregrine-edge-mlops/runs/j2t2234t"
+            }
+          ]
+        },
+        {
+          "id": "vertex-red",
+          "name": { "en": "Vertex CPU smoke", "uk": "Vertex CPU smoke" },
+          "artifact": { "en": "CustomJob 3985285181702406144 · FAILED, retained", "uk": "CustomJob 3985285181702406144 · FAILED, збережено" },
+          "control": { "en": "a stale derived smoke-tar path; no epoch ran in that attempt", "uk": "застарілий похідний шлях до smoke-tar; у тій спробі не виконалась жодна епоха" },
+          "outcome": "BLOCK",
+          "truth": "RECORDED",
+          "source": "docs/gpu-runs.yaml#L68-L73",
+          "depends_on": [],
+          "lane": "vertex-cpu-smoke",
+          "pace_ms": 1300
+        },
+        {
+          "id": "vertex",
+          "name": { "en": "Vertex CPU smoke retry", "uk": "Повтор Vertex CPU smoke" },
+          "artifact": { "en": "retry CustomJob 1864582338420146176 · local = cloud fingerprint 5e345958…", "uk": "повтор CustomJob 1864582338420146176 · локальний = хмарний fingerprint 5e345958…" },
+          "control": { "en": "one CPU-only epoch through the same packaged CLI · no accuracy claim", "uk": "одна епоха лише на CPU через той самий пакетний CLI · без тверджень про точність" },
+          "outcome": "PASS",
+          "truth": "RECORDED",
+          "source": "docs/gpu-runs.yaml#L52-L73",
+          "depends_on": ["vertex-red"],
+          "lane": "vertex-cpu-smoke",
+          "duration_recorded": "4 m 32 s",
+          "pace_ms": 480
+        },
+        {
+          "id": "vertex-t4",
+          "name": { "en": "Vertex T4 lane", "uk": "Контур Vertex T4" },
+          "artifact": { "en": "T4 quota status: unavailable-unconfirmed · no probe job and no quota-increase request was submitted", "uk": "статус квоти T4: unavailable-unconfirmed · пробне завдання не запускалось і запит на збільшення квоти не подавався" },
+          "control": { "en": "treated as unavailable until a positive limit is independently confirmed", "uk": "вважається недоступним, доки позитивний ліміт не підтверджено незалежно" },
+          "outcome": "DEFINED",
+          "source": "docs/gpu-runs.yaml#L16-L31",
+          "depends_on": [],
+          "lane": "vertex-t4",
+          "pace_ms": 600
+        }
+      ]
+    },
+    {
+      "id": "release",
+      "name": { "en": "Target matrix", "uk": "Матриця таргетів" },
+      "truth": "DEFINED",
+      "trigger": "workflow_dispatch",
+      "source": ".github/workflows/release.yml#L13-L26",
+      "boundary": {
+        "en": "The matrix is committed and executable. The numbers below are RECORDED from the retained real run — no Actions minutes were spent to produce them.",
+        "uk": "Матриця закомічена й виконувана. Числа нижче — RECORDED зі збереженого реального прогону; хвилини Actions на них не витрачалися."
+      },
+      "meta": [
+        { "label": { "en": "strategy", "uk": "strategy" }, "value": "fail-fast: false", "source": ".github/workflows/release.yml#L16" },
+        { "label": { "en": "matrix.target", "uk": "matrix.target" }, "value": "target: [x86_onnx_fp32, x86_tflite_int8, arm64_tflite_int8]", "source": ".github/workflows/release.yml#L18" },
+        { "label": { "en": "budgets", "uk": "бюджети" }, "value": "int8_map50_drop_max 0.08 · x86_tflite_p95_ms_max 227.5 · arm64_p95_ms_max 358.3 · int8_size_mb_max 4.0", "source": "configs/targets/matrix.yaml#L5-L9" }
+      ],
+      "stages": [
+        {
+          "id": "checkout",
+          "name": { "en": "Check out the commit", "uk": "Отримати коміт" },
+          "cmd": "actions/checkout@v4",
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L20",
+          "depends_on": [],
+          "pace_ms": 600
+        },
+        {
+          "id": "setup-python",
+          "name": { "en": "Pin the interpreter", "uk": "Зафіксувати інтерпретатор" },
+          "cmd": "actions/setup-python@v5",
+          "artifact": { "en": "toolchain pinned by python-version: '3.12'", "uk": "тулчейн, зафіксований через python-version: '3.12'" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L21-L23",
+          "depends_on": ["checkout"],
+          "pace_ms": 600
+        },
+        {
+          "id": "install",
+          "name": { "en": "Install from source", "uk": "Встановити з коду" },
+          "cmd": "python -m pip install -e '.[dev]'",
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L24",
+          "depends_on": ["setup-python"],
+          "pace_ms": 600
+        },
+        {
+          "id": "observe",
+          "name": { "en": "Recompose the evidence", "uk": "Перезібрати докази" },
+          "cmd": "make observe",
+          "artifact": { "en": "artifacts/observed/latest.json, shared by all three lanes", "uk": "artifacts/observed/latest.json, спільний для всіх трьох контурів" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L25",
+          "depends_on": ["install"],
+          "pace_ms": 600
+        },
+        {
+          "id": "summary-x86_onnx_fp32",
+          "name": { "en": "Summarize x86 ONNX FP32", "uk": "Підсумок x86 ONNX FP32" },
+          "cmd": "PYTHONPATH=src python -m peregrine.cli summary artifacts/observed/latest.json --target ${{ matrix.target }}",
+          "artifact": { "en": "reference lane · the precision every other target is compared against", "uk": "еталонний контур · точність, з якою порівнюють решту таргетів" },
+          "control": { "en": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-x86_onnx_fp32.json)", "uk": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-x86_onnx_fp32.json)" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L26",
+          "depends_on": ["observe"],
+          "lane": "x86_onnx_fp32",
+          "pace_ms": 600,
+          "live": [
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/map50_proxy", "label": { "en": "mAP@0.50", "uk": "mAP@0.50" }, "format": "map4" },
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/p50_ms", "label": { "en": "p50", "uk": "p50" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/p95_ms", "label": { "en": "p95", "uk": "p95" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/size_mb", "label": { "en": "size", "uk": "розмір" }, "format": "mb" },
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/host/runtime_name", "label": { "en": "runtime", "uk": "runtime" }, "format": "raw" },
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/host/runtime_version", "label": { "en": "runtime version", "uk": "версія runtime" }, "format": "raw" }
+          ],
+          "console": {
+            "en": "[summary] x86_onnx_fp32 · mAP@0.50 {0} · p95 {2} ms · {3} MB",
+            "uk": "[summary] x86_onnx_fp32 · mAP@0.50 {0} · p95 {2} ms · {3} MB"
+          }
+        },
+        {
+          "id": "summary-x86_tflite_int8",
+          "name": { "en": "Summarize x86 TFLite INT8", "uk": "Підсумок x86 TFLite INT8" },
+          "cmd": "PYTHONPATH=src python -m peregrine.cli summary artifacts/observed/latest.json --target ${{ matrix.target }}",
+          "artifact": { "en": "reference lane · the quantized product judged by Q1, Q2 and Q4", "uk": "еталонний контур · квантований продукт, який судять Q1, Q2 і Q4" },
+          "control": { "en": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-x86_tflite_int8.json)", "uk": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-x86_tflite_int8.json)" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L26",
+          "depends_on": ["observe"],
+          "lane": "x86_tflite_int8",
+          "pace_ms": 600,
+          "live": [
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/map50_proxy", "label": { "en": "mAP@0.50", "uk": "mAP@0.50" }, "format": "map4" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/p50_ms", "label": { "en": "p50", "uk": "p50" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/p95_ms", "label": { "en": "p95", "uk": "p95" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/size_mb", "label": { "en": "size", "uk": "розмір" }, "format": "mb" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/host/runtime_name", "label": { "en": "runtime", "uk": "runtime" }, "format": "raw" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/host/runtime_version", "label": { "en": "runtime version", "uk": "версія runtime" }, "format": "raw" }
+          ],
+          "console": {
+            "en": "[summary] x86_tflite_int8 · mAP@0.50 {0} · p95 {2} ms · {3} MB",
+            "uk": "[summary] x86_tflite_int8 · mAP@0.50 {0} · p95 {2} ms · {3} MB"
+          }
+        },
+        {
+          "id": "summary-arm64_tflite_int8",
+          "name": { "en": "Summarize ARM64 TFLite INT8", "uk": "Підсумок ARM64 TFLite INT8" },
+          "cmd": "PYTHONPATH=src python -m peregrine.cli summary artifacts/observed/latest.json --target ${{ matrix.target }}",
+          "artifact": { "en": "trend lane — not device latency", "uk": "трендовий контур — не latency пристрою" },
+          "control": { "en": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-arm64_tflite_int8.json)", "uk": "samples 100 · warmup 10 · threads 1 (artifacts/real/bench-arm64_tflite_int8.json)" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/release.yml#L26",
+          "depends_on": ["observe"],
+          "lane": "arm64_tflite_int8",
+          "pace_ms": 600,
+          "live": [
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/map50_proxy", "label": { "en": "mAP@0.50", "uk": "mAP@0.50" }, "format": "map4" },
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/p50_ms", "label": { "en": "p50", "uk": "p50" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/p95_ms", "label": { "en": "p95", "uk": "p95" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/size_mb", "label": { "en": "size", "uk": "розмір" }, "format": "mb" },
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/host/runtime_name", "label": { "en": "runtime", "uk": "runtime" }, "format": "raw" },
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/host/runtime_version", "label": { "en": "runtime version", "uk": "версія runtime" }, "format": "raw" }
+          ],
+          "console": {
+            "en": "[summary] arm64_tflite_int8 · mAP@0.50 {0} · p95 {2} ms · {3} MB",
+            "uk": "[summary] arm64_tflite_int8 · mAP@0.50 {0} · p95 {2} ms · {3} MB"
+          }
+        }
+      ]
+    },
+    {
+      "id": "deploy",
+      "name": { "en": "Production rollout", "uk": "Розкатка в production" },
+      "truth": "DEFINED",
+      "trigger": "workflow_dispatch",
+      "source": ".github/workflows/deploy.yml#L13-L20",
+      "boundary": {
+        "en": "Cloud Run deploy slot. Requires peregrine-deploy WIF identity and a saved model version.",
+        "uk": "Слот для деплою в Cloud Run. Потребує identity peregrine-deploy через WIF і збереженої версії моделі."
+      },
+      "meta": [
+        { "label": { "en": "environment", "uk": "environment" }, "value": "demo-production", "source": ".github/workflows/deploy.yml#L15" },
+        { "label": { "en": "permissions", "uk": "permissions" }, "value": "id-token: write", "source": ".github/workflows/deploy.yml#L5-L7" },
+        { "label": { "en": "concurrency", "uk": "concurrency" }, "value": "cancel-in-progress: false", "source": ".github/workflows/deploy.yml#L9-L11" }
+      ],
+      "stages": [
+        {
+          "id": "checkout",
+          "name": { "en": "Check out the commit", "uk": "Отримати коміт" },
+          "cmd": "actions/checkout@v4",
+          "outcome": "DEFINED",
+          "source": ".github/workflows/deploy.yml#L18",
+          "depends_on": [],
+          "pace_ms": 600
+        },
+        {
+          "id": "boundary",
+          "name": { "en": "Declare the boundary", "uk": "Оголосити межу" },
+          "cmd": "echo \"Cloud Run deploy slot. Requires peregrine-deploy WIF identity and a saved model version.\"",
+          "artifact": { "en": "the running revision on this page was applied by a reviewed terraform apply, not by this workflow", "uk": "поточна ревізія на цій сторінці застосована переглянутим terraform apply, а не цим workflow" },
+          "outcome": "DEFINED",
+          "source": ".github/workflows/deploy.yml#L19-L20",
+          "depends_on": ["checkout"],
+          "pace_ms": 600
+        }
+      ]
+    },
+    {
+      "id": "iac",
+      "name": { "en": "Infrastructure as code", "uk": "Інфраструктура як код" },
+      "truth": "RECORDED",
+      "trigger": "terraform plan -out=peregrine.tfplan",
+      "source": "infra/gcp/terraform/README.md#L21-L30",
+      "meta": [
+        { "label": { "en": "plans retained", "uk": "збережені плани" }, "value": "peregrine-serving-bootstrap.tfplan · peregrine-serving-release.tfplan", "source": "infra/gcp/terraform/peregrine-serving-release.tfplan" },
+        { "label": { "en": "bootstrap conditional", "uk": "умова bootstrap" }, "value": "count = var.service_image == \"\" ? 0 : 1", "source": "infra/gcp/terraform/serving.tf#L42" },
+        { "label": { "en": "digest admission", "uk": "допуск за digest" }, "value": "@sha256:[0-9a-f]{64}$", "source": "infra/gcp/terraform/variables.tf#L23-L26" },
+        { "label": { "en": "project lock", "uk": "фіксація проєкту" }, "value": "peregrine-edge-mlops", "source": "infra/gcp/terraform/variables.tf#L1-L10" }
+      ],
+      "stages": [
+        {
+          "id": "apis",
+          "name": { "en": "Enable only two APIs", "uk": "Увімкнути лише два API" },
+          "artifact": { "en": "artifactregistry.googleapis.com · run.googleapis.com", "uk": "artifactregistry.googleapis.com · run.googleapis.com" },
+          "control": { "en": "disable_on_destroy = false keeps teardown from breaking sibling resources", "uk": "disable_on_destroy = false не дає видаленню зламати сусідні ресурси" },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/serving.tf#L1-L10",
+          "depends_on": [],
+          "lane": "serving",
+          "pace_ms": 640
+        },
+        {
+          "id": "registry",
+          "name": { "en": "Artifact Registry", "uk": "Artifact Registry" },
+          "artifact": { "en": "peregrine-serving · DOCKER · us-central1", "uk": "peregrine-serving · DOCKER · us-central1" },
+          "control": { "en": "cleanup_policies: delete UNTAGGED older_than 604800s", "uk": "cleanup_policies: видаляти UNTAGGED старші за 604800s" },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/serving.tf#L12-L32",
+          "depends_on": ["apis"],
+          "lane": "serving",
+          "pace_ms": 640
+        },
+        {
+          "id": "sa",
+          "name": { "en": "Runtime identity", "uk": "Runtime-identity" },
+          "artifact": { "en": "peregrine-runtime · no project roles", "uk": "peregrine-runtime · без жодної ролі в проєкті" },
+          "control": { "en": "No project roles: the immutable model is bundled in the image.", "uk": "Жодних ролей у проєкті: незмінна модель вкладена в образ." },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/serving.tf#L34-L39",
+          "depends_on": ["apis"],
+          "lane": "serving",
+          "pace_ms": 640
+        },
+        {
+          "id": "cloudrun",
+          "name": { "en": "Cloud Run service", "uk": "Сервіс Cloud Run" },
+          "artifact": { "en": "digest-pinned revision of service peregrine", "uk": "ревізія сервісу peregrine, закріплена за digest" },
+          "control": { "en": "timeout 30s · concurrency 4 · scale 0→1 · cpu_idle · /readyz 24×5s · /healthz 30s", "uk": "timeout 30s · concurrency 4 · масштаб 0→1 · cpu_idle · /readyz 24×5s · /healthz 30s" },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/serving.tf#L41-L110",
+          "depends_on": ["registry", "sa"],
+          "lane": "serving",
+          "pace_ms": 640,
+          "live": [
+            { "source": "platform", "pointer": "/revision", "label": { "en": "revision", "uk": "ревізія" }, "format": "raw" },
+            { "source": "platform", "pointer": "/image_digest", "label": { "en": "image digest", "uk": "digest образу" }, "format": "hash12" },
+            { "source": "platform", "pointer": "/cpu", "label": { "en": "cpu", "uk": "cpu" }, "format": "raw" },
+            { "source": "platform", "pointer": "/memory", "label": { "en": "memory", "uk": "памʼять" }, "format": "raw" },
+            { "source": "platform", "pointer": "/min_instances", "label": { "en": "min instances", "uk": "мін. інстансів" }, "format": "int" },
+            { "source": "platform", "pointer": "/max_instances", "label": { "en": "max instances", "uk": "макс. інстансів" }, "format": "int" }
+          ],
+          "console": {
+            "en": "[run] revision {0} · digest {1} · {2} CPU / {3}",
+            "uk": "[run] ревізія {0} · digest {1} · {2} CPU / {3}"
+          }
+        },
+        {
+          "id": "iam",
+          "name": { "en": "Public invoker", "uk": "Публічний invoker" },
+          "artifact": { "en": "allUsers · roles/run.invoker", "uk": "allUsers · roles/run.invoker" },
+          "control": { "en": "the only public grant in the project, scoped to one service", "uk": "єдиний публічний grant у проєкті, обмежений одним сервісом" },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/serving.tf#L112-L120",
+          "depends_on": ["cloudrun"],
+          "lane": "serving",
+          "pace_ms": 640
+        },
+        {
+          "id": "bucket-dvc",
+          "name": { "en": "Dataset lineage bucket", "uk": "Бакет походження даних" },
+          "artifact": { "en": "gs://peregrine-edge-mlops-dvc", "uk": "gs://peregrine-edge-mlops-dvc" },
+          "control": { "en": "versioned · noncurrent 30d delete · public_access_prevention enforced · prevent_destroy", "uk": "версіонування · видалення noncurrent через 30 днів · public_access_prevention enforced · prevent_destroy" },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/storage.tf#L10-L40 + .dvc/config#L7-L8",
+          "depends_on": [],
+          "lane": "storage",
+          "pace_ms": 640
+        },
+        {
+          "id": "bucket-artifacts",
+          "name": { "en": "ML artifacts bucket", "uk": "Бакет ML-артефактів" },
+          "artifact": { "en": "gs://peregrine-edge-mlops-artifacts", "uk": "gs://peregrine-edge-mlops-artifacts" },
+          "control": { "en": "versioned · noncurrent 30d delete · public_access_prevention enforced · prevent_destroy", "uk": "версіонування · видалення noncurrent через 30 днів · public_access_prevention enforced · prevent_destroy" },
+          "outcome": "PASS",
+          "source": "infra/gcp/terraform/storage.tf#L42-L72 + infra/gcp/terraform/README.md#L32-L33",
+          "depends_on": [],
+          "lane": "storage",
+          "pace_ms": 640
+        }
+      ]
+    },
+    {
+      "id": "image",
+      "name": { "en": "Serving image", "uk": "Образ для сервінгу" },
+      "truth": "RECORDED",
+      "trigger": "manual build · push to peregrine-serving",
+      "source": "Dockerfile#L1-L27",
+      "meta": [
+        { "label": { "en": "pinned model sha256", "uk": "зафіксований sha256 моделі" }, "value": "020a524193b32dafdac0126daea1ecddacc7878499b3119111e84ae1b594d14f", "source": "Dockerfile#L14" },
+        { "label": { "en": "runtime user", "uk": "користувач runtime" }, "value": "USER 65532:65532", "source": "Dockerfile#L25" }
+      ],
+      "stages": [
+        {
+          "id": "build",
+          "name": { "en": "Build the wheels", "uk": "Зібрати wheels" },
+          "cmd": "python -m pip wheel --no-cache-dir --wheel-dir /wheels '.[serving]'",
+          "artifact": { "en": "serving wheels built in a throwaway python:3.12-slim stage", "uk": "wheels для сервінгу, зібрані в одноразовій стадії python:3.12-slim" },
+          "control": { "en": "only the serving extra reaches the runtime layer", "uk": "у runtime-шар потрапляє лише extra serving" },
+          "outcome": "PASS",
+          "source": "Dockerfile#L1-L6",
+          "depends_on": [],
+          "pace_ms": 480
+        },
+        {
+          "id": "runtime",
+          "name": { "en": "Seal the runtime layer", "uk": "Запечатати runtime-шар" },
+          "cmd": "exec uvicorn peregrine.api:app --host 0.0.0.0 --port ${PORT} --workers 1",
+          "artifact": { "en": "immutable image carrying models/best.onnx, the site and observed evidence", "uk": "незмінний образ із models/best.onnx, сайтом і виміряними доказами" },
+          "control": { "en": "PEREGRINE_MODEL_SHA256 checked at startup · USER 65532:65532 · EXPOSE 8080", "uk": "PEREGRINE_MODEL_SHA256 перевіряється на старті · USER 65532:65532 · EXPOSE 8080" },
+          "outcome": "PASS",
+          "source": "Dockerfile#L8-L27",
+          "depends_on": ["build"],
+          "pace_ms": 480,
+          "fragments": [
+            {
+              "kind": "artifact",
+              "target": "x86_onnx_fp32",
+              "sha256": "020a524193b32dafdac0126daea1ecddacc7878499b3119111e84ae1b594d14f",
+              "observed_at": "2026-08-14T11:26:46.858873+00:00",
+              "key": { "label": { "en": "bundled model", "uk": "вкладена модель" }, "value": "12.27 MB" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "name": { "en": "One artifact, end to end", "uk": "Один артефакт, від початку до кінця" },
+      "truth": "RECORDED",
+      "trigger": "retained real run · peregrine-real-f065204c3a87",
+      "source": "artifacts/observed/latest.json",
+      "meta": [
+        { "label": { "en": "run", "uk": "run" }, "value": "peregrine-real-f065204c3a87", "source": "artifacts/observed/latest.json" },
+        { "label": { "en": "observed", "uk": "виміряно" }, "value": "2026-08-14", "source": "artifacts/observed/latest.json" },
+        { "label": { "en": "accuracy basis", "uk": "база точності" }, "value": "COCO mAP@0.50 / mAP@0.50:0.95, Ultralytics evaluator, held-out test split (N=11)", "source": "artifacts/observed/latest.json" }
+      ],
+      "stages": [
+        {
+          "id": "dataset-reject",
+          "name": { "en": "First export refused", "uk": "Перший експорт відхилено" },
+          "artifact": { "en": "its real label space could not satisfy pallet/carton", "uk": "його реальний простір міток не міг покрити pallet/carton" },
+          "control": { "en": "class mapping is declared before the snapshot is accepted", "uk": "мапінг класів декларується до того, як snapshot приймають" },
+          "outcome": "BLOCK",
+          "source": "configs/data/warehouse.yaml#L13-L18 + site/platform-events.json#dataset-reject",
+          "depends_on": [],
+          "lane": "DATA",
+          "pace_ms": 1300
+        },
+        {
+          "id": "dataset",
+          "name": { "en": "Validate the snapshot", "uk": "Перевірити snapshot" },
+          "artifact": { "en": "1,034 images · 945 train / 78 valid / 11 test", "uk": "1 034 зображення · 945 train / 78 valid / 11 test" },
+          "control": { "en": "CC-BY-4.0 verified · polygon-to-box conversion recorded as a modification", "uk": "CC-BY-4.0 перевірено · перетворення полігонів на рамки задокументовано як модифікацію" },
+          "outcome": "PASS",
+          "source": "docs/DATASET_LICENSE.md#L9-L26 + configs/data/warehouse.yaml#L7-L11",
+          "depends_on": ["dataset-reject"],
+          "lane": "DATA",
+          "pace_ms": 480
+        },
+        {
+          "id": "dvc",
+          "name": { "en": "Version the snapshot", "uk": "Версіонувати snapshot" },
+          "artifact": { "en": "dataset fingerprint 0c46212dc22a…", "uk": "fingerprint датасету 0c46212dc22a…" },
+          "control": { "en": "DVC pointer in Git, objects in gs://peregrine-edge-mlops-dvc", "uk": "покажчик DVC у Git, обʼєкти в gs://peregrine-edge-mlops-dvc" },
+          "outcome": "PASS",
+          "source": ".dvc/config#L1-L8 + data/processed/warehouse.dvc#L1-L6",
+          "depends_on": ["dataset"],
+          "lane": "DATA",
+          "pace_ms": 480,
+          "live": [
+            { "source": "evidence", "pointer": "/lineage/dataset_fingerprint", "label": { "en": "dataset", "uk": "датасет" }, "format": "hash12" }
+          ],
+          "console": { "en": "[data] fingerprint {0}", "uk": "[data] fingerprint {0}" }
+        },
+        {
+          "id": "smoke",
+          "name": { "en": "CPU smoke contract", "uk": "Контракт CPU smoke" },
+          "artifact": { "en": "32 train + 8 validation images · mechanics only", "uk": "32 тренувальні + 8 валідаційних зображень · лише механіка" },
+          "control": { "en": "deterministic subset · epochs 1 · device cpu", "uk": "детермінована підмножина · epochs 1 · device cpu" },
+          "outcome": "PASS",
+          "source": "configs/data/warehouse.yaml#L19-L21 + configs/train/smoke.yaml#L1-L10",
+          "depends_on": ["dvc"],
+          "lane": "TRAIN",
+          "pace_ms": 480
+        },
+        {
+          "id": "colab-red",
+          "name": { "en": "Preflight refusal", "uk": "Відмова на передстарті" },
+          "artifact": { "en": "the first attempt stopped before any epoch", "uk": "перша спроба зупинилась до першої епохи" },
+          "control": { "en": "prepare_training_run refuses before allocating resources", "uk": "prepare_training_run відмовляє ще до виділення ресурсів" },
+          "outcome": "BLOCK",
+          "source": "src/peregrine/training.py#L29-L38 + site/platform-events.json#colab-red",
+          "depends_on": ["smoke"],
+          "lane": "TRAIN",
+          "pace_ms": 1300
+        },
+        {
+          "id": "train",
+          "name": { "en": "Train the baseline", "uk": "Навчити baseline" },
+          "artifact": { "en": "run j2t2234t · 30 epochs · observed cost $0", "uk": "run j2t2234t · 30 епох · зафіксована вартість $0" },
+          "control": { "en": "seed 42 · deterministic: true · pinned commit", "uk": "seed 42 · deterministic: true · закріплений коміт" },
+          "outcome": "PASS",
+          "source": "docs/gpu-runs.yaml#L34-L51",
+          "depends_on": ["colab-red"],
+          "lane": "TRAIN",
+          "duration_recorded": "8 m 45 s",
+          "pace_ms": 480,
+          "links": [
+            {
+              "label": { "en": "full telemetry retained in W&B ↗", "uk": "повна телеметрія збережена у W&B ↗" },
+              "href": "https://wandb.ai/d-peregrine/peregrine-edge-mlops/runs/j2t2234t"
+            }
+          ],
+          "live": [
+            { "source": "evidence", "pointer": "/run_id", "label": { "en": "run id", "uk": "run id" }, "format": "raw" }
+          ],
+          "console": { "en": "[train] run {0} · 8 m 45 s · $0", "uk": "[train] run {0} · 8 хв 45 с · $0" }
+        },
+        {
+          "id": "convert",
+          "name": { "en": "Export target artifacts", "uk": "Експортувати артефакти таргетів" },
+          "artifact": { "en": "12.27 MB ONNX → 3.33 MB TFLite INT8", "uk": "12.27 MB ONNX → 3.33 MB TFLite INT8" },
+          "control": { "en": "Ultralytics 8.4.120 · 200 calibration images · per-channel weights · calibration 90dbeb2b…", "uk": "Ultralytics 8.4.120 · 200 калібрувальних зображень · per-channel ваги · калібрування 90dbeb2b…" },
+          "outcome": "PASS",
+          "source": "configs/export/tflite_int8.yaml#L1-L6 + artifacts/real/artifact-x86_tflite_int8.json",
+          "depends_on": ["train"],
+          "lane": "CONVERT",
+          "pace_ms": 480,
+          "live": [
+            { "source": "evidence", "pointer": "/lineage/calibration_hash", "label": { "en": "calibration", "uk": "калібрування" }, "format": "hash12" }
+          ],
+          "console": { "en": "[convert] ONNX + INT8 · calibration {0}", "uk": "[convert] ONNX + INT8 · калібрування {0}" }
+        },
+        {
+          "id": "evaluate",
+          "name": { "en": "Re-evaluate every precision", "uk": "Переоцінити кожну точність" },
+          "artifact": { "en": "11 images · 196 instances · mAP@0.50 0.9713 → 0.9451", "uk": "11 зображень · 196 екземплярів · mAP@0.50 0.9713 → 0.9451" },
+          "control": { "en": "one evaluator across precisions; the INT8 export is judged as a new model", "uk": "один оцінювач для всіх точностей; INT8-експорт судять як нову модель" },
+          "outcome": "PASS",
+          "source": "artifacts/real/eval-x86_onnx_fp32.json + artifacts/real/eval-x86_tflite_int8.json",
+          "depends_on": ["convert"],
+          "lane": "MEASURE",
+          "pace_ms": 480,
+          "live": [
+            { "source": "evidence", "pointer": "/targets/x86_onnx_fp32/map50_proxy", "label": { "en": "FP32 mAP@0.50", "uk": "FP32 mAP@0.50" }, "format": "map4" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/map50_proxy", "label": { "en": "INT8 mAP@0.50", "uk": "INT8 mAP@0.50" }, "format": "map4" }
+          ],
+          "console": { "en": "[evaluate] mAP@0.50 {0} → {1}", "uk": "[evaluate] mAP@0.50 {0} → {1}" }
+        },
+        {
+          "id": "benchmark",
+          "name": { "en": "Measure every target", "uk": "Виміряти кожен таргет" },
+          "artifact": { "en": "182.0 ms / 177.2 ms p95", "uk": "182.0 ms / 177.2 ms p95" },
+          "control": { "en": "batch 1 · 640 input · threads 1 · warmup 10 · samples 100 · host provenance retained", "uk": "batch 1 · вхід 640 · threads 1 · warmup 10 · samples 100 · походження хоста збережено" },
+          "outcome": "PASS",
+          "source": "artifacts/real/bench-x86_tflite_int8.json + docs/gates/shakedown-block.md#L24-L30",
+          "depends_on": ["evaluate"],
+          "lane": "MEASURE",
+          "pace_ms": 480,
+          "live": [
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/p95_ms", "label": { "en": "x86 p95", "uk": "x86 p95" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/targets/x86_tflite_int8/size_mb", "label": { "en": "size", "uk": "розмір" }, "format": "mb" },
+            { "source": "evidence", "pointer": "/targets/arm64_tflite_int8/p95_ms", "label": { "en": "ARM64 p95 (trend)", "uk": "ARM64 p95 (тренд)" }, "format": "ms" }
+          ],
+          "console": { "en": "[measure] x86_tflite_int8 · p95 {0} ms · {1} MB", "uk": "[measure] x86_tflite_int8 · p95 {0} ms · {1} MB" }
+        },
+        {
+          "id": "observe",
+          "name": { "en": "Compose the evidence", "uk": "Зібрати докази" },
+          "cmd": "make observe",
+          "artifact": { "en": "artifacts/observed/latest.json + artifacts/model-cards/peregrine-yolov8n-int8.md", "uk": "artifacts/observed/latest.json + artifacts/model-cards/peregrine-yolov8n-int8.md" },
+          "control": { "en": "the Makefile target composes 9 retained fragments with --lane real (Makefile#L18-L23); dvc.yaml#L2-L9 declares the same outputs", "uk": "ціль Makefile збирає 9 збережених фрагментів з --lane real (Makefile#L18-L23); dvc.yaml#L2-L9 декларує ті самі виходи" },
+          "outcome": "PASS",
+          "source": ".github/workflows/ci.yml#L26",
+          "depends_on": ["benchmark"],
+          "lane": "MEASURE",
+          "pace_ms": 480,
+          "live": [
+            { "source": "evidence", "pointer": "/run_id", "label": { "en": "run id", "uk": "run id" }, "format": "raw" },
+            { "source": "evidence", "pointer": "/fingerprint", "label": { "en": "evidence fingerprint", "uk": "fingerprint доказів" }, "format": "hash12" }
+          ],
+          "console": { "en": "[observe] run {0} · evidence {1}", "uk": "[observe] run {0} · докази {1}" },
+          "fragments": [
+            {
+              "kind": "eval",
+              "target": "x86_onnx_fp32",
+              "sha256": "020a524193b32dafdac0126daea1ecddacc7878499b3119111e84ae1b594d14f",
+              "observed_at": "2026-08-14T11:29:58.947869+00:00",
+              "key": { "label": { "en": "mAP@0.50", "uk": "mAP@0.50" }, "value": "0.9713" }
+            },
+            {
+              "kind": "eval",
+              "target": "x86_tflite_int8",
+              "sha256": "a2581ffb95fff214199c82fc7d0a9da8389470256a3735a055b2e4c9020bc2e0",
+              "observed_at": "2026-08-14T11:30:05.660973+00:00",
+              "key": { "label": { "en": "mAP@0.50", "uk": "mAP@0.50" }, "value": "0.9451" }
+            },
+            {
+              "kind": "eval",
+              "target": "arm64_tflite_int8",
+              "sha256": "a2581ffb95fff214199c82fc7d0a9da8389470256a3735a055b2e4c9020bc2e0",
+              "observed_at": "2026-08-14T11:30:05.660973+00:00",
+              "key": { "label": { "en": "mAP@0.50", "uk": "mAP@0.50" }, "value": "0.9451" }
+            },
+            {
+              "kind": "bench",
+              "target": "x86_onnx_fp32",
+              "sha256": null,
+              "observed_at": "2026-08-14T11:30:43.946655+00:00",
+              "key": { "label": { "en": "p95", "uk": "p95" }, "value": "146.9 ms" }
+            },
+            {
+              "kind": "bench",
+              "target": "x86_tflite_int8",
+              "sha256": null,
+              "observed_at": "2026-08-14T11:31:03.762023+00:00",
+              "key": { "label": { "en": "p95", "uk": "p95" }, "value": "182.0 ms" }
+            },
+            {
+              "kind": "bench",
+              "target": "arm64_tflite_int8",
+              "sha256": null,
+              "observed_at": "2026-08-14T11:37:35.389683+00:00",
+              "key": { "label": { "en": "p95", "uk": "p95" }, "value": "177.2 ms" }
+            },
+            {
+              "kind": "artifact",
+              "target": "x86_onnx_fp32",
+              "sha256": "020a524193b32dafdac0126daea1ecddacc7878499b3119111e84ae1b594d14f",
+              "observed_at": "2026-08-14T11:26:46.858873+00:00",
+              "key": { "label": { "en": "Ultralytics 8.4.120", "uk": "Ultralytics 8.4.120" }, "value": "12.27 MB" }
+            },
+            {
+              "kind": "artifact",
+              "target": "x86_tflite_int8",
+              "sha256": "a2581ffb95fff214199c82fc7d0a9da8389470256a3735a055b2e4c9020bc2e0",
+              "observed_at": "2026-08-14T11:29:26.209382+00:00",
+              "key": { "label": { "en": "Ultralytics 8.4.120", "uk": "Ultralytics 8.4.120" }, "value": "3.33 MB" }
+            },
+            {
+              "kind": "artifact",
+              "target": "arm64_tflite_int8",
+              "sha256": "a2581ffb95fff214199c82fc7d0a9da8389470256a3735a055b2e4c9020bc2e0",
+              "observed_at": "2026-08-14T11:29:26.209382+00:00",
+              "key": { "label": { "en": "same INT8 artifact as x86", "uk": "той самий INT8-артефакт, що й x86" }, "value": "3.33 MB" }
+            }
+          ]
+        },
+        {
+          "id": "gate-red",
+          "name": { "en": "Pre-rebaseline gate", "uk": "Гейт до перебазування бюджетів" },
+          "artifact": { "en": "Q2 182.0363 ms ≤ 15.0 ms FAIL · Q3 286.6515 ms ≤ 60.0 ms FAIL", "uk": "Q2 182.0363 ms ≤ 15.0 ms FAIL · Q3 286.6515 ms ≤ 60.0 ms FAIL" },
+          "control": { "en": "fixture-era budgets, preserved instead of deleted or relabeled", "uk": "бюджети епохи фікстур, збережені замість видалення чи перейменування" },
+          "outcome": "BLOCK",
+          "source": "docs/gates/shakedown-block.md#L10-L22",
+          "depends_on": ["benchmark"],
+          "lane": "DECIDE",
+          "pace_ms": 1300
+        },
+        {
+          "id": "gate",
+          "name": { "en": "Execute Q1—Q5", "uk": "Виконати Q1—Q5" },
+          "artifact": { "en": "PROMOTE · failed none", "uk": "PROMOTE · провалених немає" },
+          "control": { "en": "first-failure refusal · the budget commit strictly precedes the run commit", "uk": "відмова на першому провалі · коміт із бюджетами суворо передує коміту прогону" },
+          "outcome": "PASS",
+          "source": "configs/targets/matrix.yaml#L5-L9 + artifacts/observed/latest.json",
+          "depends_on": ["observe", "gate-red"],
+          "lane": "DECIDE",
+          "pace_ms": 480,
+          "live": [
+            { "source": "evidence", "pointer": "/release_verdict/gates/0/measured", "label": { "en": "Q1 mAP@0.50 drop", "uk": "Q1 падіння mAP@0.50" }, "format": "map4" },
+            { "source": "evidence", "pointer": "/release_verdict/gates/1/measured", "label": { "en": "Q2 x86 p95", "uk": "Q2 x86 p95" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/release_verdict/gates/2/measured", "label": { "en": "Q3 ARM64 p95", "uk": "Q3 ARM64 p95" }, "format": "ms" },
+            { "source": "evidence", "pointer": "/release_verdict/gates/3/measured", "label": { "en": "Q4 INT8 size", "uk": "Q4 розмір INT8" }, "format": "mb" }
+          ],
+          "console": { "en": "[gate] Q1 {0} · Q2 {1} ms · Q3 {2} ms · Q4 {3} MB", "uk": "[gate] Q1 {0} · Q2 {1} ms · Q3 {2} ms · Q4 {3} MB" }
+        },
+        {
+          "id": "serve",
+          "name": { "en": "Serve the promoted model", "uk": "Обслуговувати допущену модель" },
+          "artifact": { "en": "digest-pinned Cloud Run revision", "uk": "ревізія Cloud Run, закріплена за digest" },
+          "control": { "en": "startup sha256 check · min 0 / max 1 · request-only CPU", "uk": "перевірка sha256 на старті · min 0 / max 1 · CPU лише на запит" },
+          "outcome": "PASS",
+          "truth": "LIVE",
+          "source": "infra/gcp/terraform/serving.tf#L41-L110 + src/peregrine/api.py#L144-L163",
+          "depends_on": ["gate"],
+          "lane": "SERVE",
+          "pace_ms": 640,
+          "live": [
+            { "source": "platform", "pointer": "/service", "label": { "en": "service", "uk": "сервіс" }, "format": "raw" },
+            { "source": "platform", "pointer": "/revision", "label": { "en": "revision", "uk": "ревізія" }, "format": "raw" },
+            { "source": "platform", "pointer": "/image_digest", "label": { "en": "image digest", "uk": "digest образу" }, "format": "hash12" },
+            { "source": "platform", "pointer": "/model_sha256", "label": { "en": "model sha256", "uk": "sha256 моделі" }, "format": "hash12" }
+          ],
+          "console": { "en": "[serve] {0}/{1} · digest {2}", "uk": "[serve] {0}/{1} · digest {2}" }
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "name": { "en": "One request, five hops", "uk": "Один запит, пʼять хопів" },
+      "truth": "DEFINED",
+      "trigger": "POST /api/predict",
+      "source": "src/peregrine/api.py#L166-L204",
+      "boundary": {
+        "en": "hop timing illustrative — only total request time and inference_ms are measured",
+        "uk": "тайминги хопів ілюстративні — вимірюються лише загальний час запиту та inference_ms"
+      },
+      "meta": [
+        { "label": { "en": "upload cap", "uk": "ліміт завантаження" }, "value": "5 MiB", "source": "src/peregrine/api.py#L19" },
+        { "label": { "en": "accepted types", "uk": "дозволені типи" }, "value": "image/jpeg · image/png · image/webp", "source": "src/peregrine/api.py#L20" },
+        { "label": { "en": "retention", "uk": "зберігання" }, "value": "processed in memory; image bytes are not retained", "source": "src/peregrine/api.py#L203" }
+      ],
+      "stages": [
+        {
+          "id": "browser",
+          "name": { "en": "Browser", "uk": "Браузер" },
+          "artifact": { "en": "image bytes streamed from the page", "uk": "байти зображення, передані зі сторінки" },
+          "control": { "en": "5 MiB cap enforced on the declared length and again while streaming", "uk": "ліміт 5 MiB перевіряється за заявленою довжиною і повторно під час стрімінгу" },
+          "outcome": "DEFINED",
+          "source": "src/peregrine/api.py#L166-L186",
+          "depends_on": [],
+          "pace_ms": 600
+        },
+        {
+          "id": "azure-dns",
+          "name": { "en": "Azure DNS", "uk": "Azure DNS" },
+          "artifact": { "en": "CNAME for peregrine.devopsdive.com", "uk": "CNAME для peregrine.devopsdive.com" },
+          "control": { "en": "the hostname is delegated, the service is not", "uk": "делеговано лише hostname, а не сам сервіс" },
+          "outcome": "DEFINED",
+          "source": "site/platform-events.json#domain + src/peregrine/api.py#L92-L99",
+          "depends_on": ["browser"],
+          "pace_ms": 600
+        },
+        {
+          "id": "gfe",
+          "name": { "en": "Google Frontend", "uk": "Google Frontend" },
+          "artifact": { "en": "managed TLS termination", "uk": "керована термінація TLS" },
+          "control": { "en": "certificate readiness is a precondition of the public hostname", "uk": "готовність сертифіката — передумова публічного hostname" },
+          "outcome": "DEFINED",
+          "source": "site/platform-events.json#domain",
+          "depends_on": ["azure-dns"],
+          "pace_ms": 600
+        },
+        {
+          "id": "cloudrun",
+          "name": { "en": "Cloud Run", "uk": "Cloud Run" },
+          "artifact": { "en": "the digest-pinned revision wakes from zero", "uk": "ревізія, закріплена за digest, прокидається з нуля" },
+          "control": { "en": "request-only CPU · concurrency 4 · max 1 instance · timeout 30s", "uk": "CPU лише на запит · concurrency 4 · максимум 1 інстанс · timeout 30s" },
+          "outcome": "DEFINED",
+          "source": "infra/gcp/terraform/serving.tf#L41-L110 + src/peregrine/api.py#L144-L163",
+          "depends_on": ["gfe"],
+          "pace_ms": 600,
+          "live": [
+            { "source": "platform", "pointer": "/revision", "label": { "en": "revision", "uk": "ревізія" }, "format": "raw" },
+            { "source": "platform", "pointer": "/region", "label": { "en": "region", "uk": "регіон" }, "format": "raw" },
+            { "source": "platform", "pointer": "/concurrency", "label": { "en": "concurrency", "uk": "concurrency" }, "format": "int" },
+            { "source": "platform", "pointer": "/max_instances", "label": { "en": "max instances", "uk": "макс. інстансів" }, "format": "int" }
+          ],
+          "console": { "en": "[run] {0} · {1} · concurrency {2}", "uk": "[run] {0} · {1} · concurrency {2}" }
+        },
+        {
+          "id": "onnx",
+          "name": { "en": "ONNX Runtime", "uk": "ONNX Runtime" },
+          "artifact": { "en": "boxes and lineage, no stored image", "uk": "рамки й походження, без збереження зображення" },
+          "control": { "en": "the loaded model must match PEREGRINE_MODEL_SHA256 or readiness fails (src/peregrine/api.py#L253-L261)", "uk": "завантажена модель має збігатися з PEREGRINE_MODEL_SHA256, інакше readiness падає (src/peregrine/api.py#L253-L261)" },
+          "outcome": "DEFINED",
+          "source": "src/peregrine/api.py#L187-L204",
+          "depends_on": ["cloudrun"],
+          "pace_ms": 600,
+          "live": [
+            { "source": "predict", "pointer": "/inference_ms", "label": { "en": "inference", "uk": "інференс" }, "format": "ms" },
+            { "source": "predict", "pointer": "/model_sha256", "label": { "en": "model sha256", "uk": "sha256 моделі" }, "format": "hash12" },
+            { "source": "predict", "pointer": "/runtime", "label": { "en": "runtime", "uk": "runtime" }, "format": "raw" }
+          ],
+          "console": { "en": "[predict] {0} ms · model {1}", "uk": "[predict] {0} ms · модель {1}" }
+        }
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "ci.observe",
+      "to": "model.observe",
+      "artifact": { "en": "artifacts/observed/latest.json + model card", "uk": "artifacts/observed/latest.json + model card" },
+      "source": ".github/workflows/ci.yml#L26"
+    },
+    {
+      "from": "model.observe",
+      "to": "release.summary-x86_onnx_fp32",
+      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, читаються по таргету" },
+      "source": ".github/workflows/release.yml#L26"
+    },
+    {
+      "from": "model.observe",
+      "to": "release.summary-x86_tflite_int8",
+      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, читаються по таргету" },
+      "source": ".github/workflows/release.yml#L26"
+    },
+    {
+      "from": "model.observe",
+      "to": "release.summary-arm64_tflite_int8",
+      "artifact": { "en": "observed evidence, read per target", "uk": "виміряні докази, читаються по таргету" },
+      "source": ".github/workflows/release.yml#L26"
+    },
+    {
+      "from": "model.gate",
+      "to": "image.build",
+      "artifact": { "en": "PROMOTE admits models/best.onnx", "uk": "PROMOTE допускає models/best.onnx" },
+      "source": "Dockerfile#L23"
+    },
+    {
+      "from": "image.runtime",
+      "to": "iac.cloudrun",
+      "artifact": { "en": "registry digest → var.service_image", "uk": "digest у registry → var.service_image" },
+      "source": "infra/gcp/terraform/variables.tf#L18-L26"
+    },
+    {
+      "from": "iac.cloudrun",
+      "to": "runtime.cloudrun",
+      "artifact": { "en": "live revision", "uk": "жива ревізія" },
+      "source": "src/peregrine/api.py#L144-L163"
+    },
+    {
+      "from": "train.colab",
+      "to": "model.train",
+      "artifact": { "en": "the retained Colab run behind the RECORDED lane", "uk": "збережений прогін у Colab, що стоїть за RECORDED-контуром" },
+      "source": "docs/gpu-runs.yaml#L34-L51"
+    }
+  ]
+}

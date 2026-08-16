@@ -25,33 +25,41 @@ def test_public_story_does_not_deep_link_internal_docs() -> None:
 
 
 def test_ukrainian_story_is_first_class() -> None:
-    app = (ROOT / "site/app.js").read_text()
-    assert 'heroTitle: "Я не просто розгорнув модель.' in app
-    assert 'platformTitle: "Пройдіть шлях одного артефакту' in app
-    assert app.count("backToTop:") == 2
+    uk = (ROOT / "site/data/i18n.uk.js").read_text()
+    en = (ROOT / "site/data/i18n.en.js").read_text()
+    assert 'heroTitle: "Я не просто розгорнув модель.' in uk
+    assert 'platformTitle: "Пройдіть шлях одного артефакту' in uk
+    assert uk.count("backToTop:") == en.count("backToTop:") == 2
 
 
 def test_platform_replay_is_real_dependency_ordered_evidence() -> None:
     model = json.loads((ROOT / "site/platform-events.json").read_text())
-    assert model["schema_version"] == 1
+    assert model["schema_version"] == 2
     assert len(model["events"]) >= 20
+    required = {
+        "id",
+        "phase",
+        "resource",
+        "action",
+        "depends_on",
+        "control",
+        "evidence",
+        "outcome",
+        "source",
+        "truth",
+    }
     seen: set[str] = set()
     outcomes = set()
+    truths = set()
     for event in model["events"]:
-        assert set(event) == {
-            "id",
-            "phase",
-            "resource",
-            "action",
-            "depends_on",
-            "control",
-            "evidence",
-            "outcome",
-        }
+        assert required <= set(event)
+        assert set(event) <= required | {"pace_ms", "uk"}
         assert set(event["depends_on"]) <= seen
         seen.add(event["id"])
         outcomes.add(event["outcome"])
-    assert {"PASS", "BLOCK", "LIVE"} <= outcomes
+        truths.add(event["truth"])
+    assert outcomes == {"PASS", "BLOCK"}
+    assert truths == {"RECORDED", "LIVE"}
 
 
 def test_pwa_shell_caches_story_but_never_api_requests() -> None:

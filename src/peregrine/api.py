@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -17,6 +18,9 @@ from peregrine.inference import InferenceError, OnnxDetector
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
+REVALIDATE_CACHE = "no-cache"
+_NON_PREFIXED_API_PATHS = frozenset({"/healthz", "/readyz", "/predict"})
 
 
 class PredictRequest(BaseModel):
@@ -97,6 +101,21 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
 )
+
+
+@app.middleware("http")
+async def cache_control(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Cache version-pinned assets immutably and keep shell, HTML and evidence revalidated."""
+    response = await call_next(request)
+    path = request.url.path
+    if request.method != "GET" or path.startswith("/api/") or path in _NON_PREFIXED_API_PATHS:
+        return response
+    pinned = "v" in request.query_params or path.endswith(".svg")
+    response.headers["Cache-Control"] = IMMUTABLE_CACHE if pinned else REVALIDATE_CACHE
+    return response
+
 
 _detector: OnnxDetector | None = None
 
