@@ -1,0 +1,9 @@
+{
+  "projectId": "73f93198-5e44-4203-b91c-e35545eb1845",
+  "shape": "package",
+  "pkg": "@peregrine/ui",
+  "globalName": "Peregrine",
+  "srcDir": "ui-kit/src",
+  "buildCmd": "npm --prefix ui-kit run build",
+  "cssEntry": "styles.css"
+}

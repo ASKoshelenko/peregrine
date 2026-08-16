@@ -59,3 +59,8 @@ override.tf.json
 
 # Deliberately local notes
 docs/private/
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

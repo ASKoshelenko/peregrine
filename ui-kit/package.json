@@ -1,0 +1,35 @@
+{
+  "name": "@peregrine/ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Thin React adapter over the Peregrine vanilla-CSS design system (site/styles.css).",
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "styles.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./styles.css": "./styles.css"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=esm --jsx=automatic --external:react --external:react/* --external:react-dom --external:react-dom/* --outfile=dist/index.mjs && tsc --emitDeclarationOnly --outDir dist"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "esbuild": "^0.24.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3"
+  }
+}
