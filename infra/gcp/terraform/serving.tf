@@ -1,5 +1,6 @@
 resource "google_project_service" "serving" {
   for_each = toset([
+    "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
     "run.googleapis.com",
   ])
@@ -35,7 +36,15 @@ resource "google_service_account" "runtime" {
   project      = var.project_id
   account_id   = "peregrine-runtime"
   display_name = "Peregrine Cloud Run runtime"
-  description  = "No project roles: the immutable model is bundled in the image."
+  description  = "One project role: Vertex AI scope calls. The released model is bundled in the image."
+}
+
+resource "google_project_iam_member" "runtime_vertex" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+
+  depends_on = [google_project_service.serving]
 }
 
 resource "google_cloud_run_v2_service" "api" {

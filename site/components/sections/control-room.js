@@ -38,13 +38,28 @@ export function mountControlRoom({ store, registry }) {
 }
 
 function mountReplay(store, workbench) {
+  const plain = byId("replay-plain");
+  let done = null;
+  function paintPlain() {
+    if (!plain) return;
+    plain.hidden = !done;
+    plain.textContent = done ? t(done.verdict === "PROMOTE" ? "plain.replayPromote" : "plain.replayBlock", { gates: done.gates }) : "";
+  }
   byId("replay-run").addEventListener("click", () => {
     if (workbench) workbench.pause();
     const state = store.get();
     const gates = state.evidence?.release_verdict?.gates?.length || 0;
     const verdict = state.evidence?.release_verdict?.passed ? "PROMOTE" : "BLOCK";
-    runConsole(buildRecordedLines(state.evidence, state.platform, t), { scope: "control", summary: gates ? t("replaySummary", { gates, verdict }) : t("replayBoundary") });
+    done = null;
+    paintPlain();
+    runConsole(buildRecordedLines(state.evidence, state.platform, t), {
+      scope: "control",
+      summary: gates ? t("replaySummary", { gates, verdict }) : t("replayBoundary"),
+      onDone: () => { done = gates ? { gates, verdict } : null; paintPlain(); },
+    });
   });
+  store.subscribe(["language"], paintPlain);
+  paintPlain();
 }
 
 function mountAutomation(store, registry, pipelineOf) {
@@ -229,7 +244,7 @@ function mountWorkbench(store, registry, pipelineOf, writer, liveState) {
     if (payload.type === "reset") { writer.clear(); writer.at(0); return; }
     writer.write(payload.line);
     writer.at(payload.completed / payload.total);
-    if (payload.completed >= payload.total) { writer.say(t("buildSummary", { events: payload.total, blocks })); liveState("polite"); }
+    if (payload.completed >= payload.total) { writer.say(`${t("buildSummary", { events: payload.total, blocks })} ${t("plain.buildDone", { blocks })}`); liveState("polite"); }
   }
 
   function buildRail() {

@@ -1,9 +1,10 @@
 import * as router from "./components/router.js";
-import { applyStatic, lang, onChange, t, toggle } from "./components/i18n.js";
+import { applyStatic, esc, lang, onChange, t, toggle } from "./components/i18n.js";
 import { createStore } from "./components/store.js";
 import { loadPipelineModel } from "./components/pipeline-model.js";
 import { loadPlatformEventModel } from "./components/platform-event-model.js";
 import { registerPwaShell } from "./components/pwa-shell.js";
+import { initGloss } from "./components/gloss.js";
 import { mountHero } from "./components/sections/hero.js";
 import { mountPlatform } from "./components/sections/platform.js";
 import { mountConveyor } from "./components/sections/conveyor.js";
@@ -14,12 +15,19 @@ import { mountEvidence } from "./components/sections/evidence.js";
 import { mountOps } from "./components/sections/ops.js";
 
 const API_BASE = window.PEREGRINE_API_BASE || "";
+const ORIENT_KEY = "peregrine-orient";
 const EVIDENCE_URL = "/artifacts/observed/latest.json";
 const POLL_MS = 60000;
 const TICK_MS = 1000;
 const DIP_MS = 300;
 
 const byId = (id) => document.getElementById(id);
+// Static inline flags for the language switch: emoji flags never render on Windows.
+const FLAGS = {
+  uk: '<svg class="lang-flag" viewBox="0 0 3 2" aria-hidden="true" focusable="false"><path fill="#005bbb" d="M0 0h3v1H0z" /><path fill="#ffd500" d="M0 1h3v1H0z" /></svg>',
+  en: '<svg class="lang-flag" viewBox="0 0 60 40" aria-hidden="true" focusable="false"><path fill="#012169" d="M0 0h60v40H0z" /><g fill="none"><path stroke="#fff" stroke-width="9" d="M0 0L60 40M60 0L0 40" /><path stroke="#c8102e" stroke-width="4" d="M0 0L60 40M60 0L0 40" /><path stroke="#fff" stroke-width="13" d="M30 0V40M0 20H60" /><path stroke="#c8102e" stroke-width="8" d="M30 0V40M0 20H60" /></g></svg>',
+};
+const paintLanguageSwitch = () => { byId("language-switch").innerHTML = `${FLAGS[lang() === "en" ? "uk" : "en"]}<span>${esc(t("switchLabel"))}</span>`; };
 const store = createStore({ language: lang() });
 const registry = () => { const state = store.get(); return { platform: state.platform, evidence: state.evidence, predict: state.predict.result }; };
 const ctx = { store, registry, api: API_BASE };
@@ -75,8 +83,25 @@ function scrollChrome() {
   paint();
 }
 
+function orientation() {
+  const strip = byId("orient");
+  const dismiss = byId("orient-dismiss");
+  if (!strip || !dismiss) return;
+  let done = false;
+  try { done = localStorage.getItem(ORIENT_KEY) === "done"; } catch { done = false; }
+  strip.hidden = done;
+  dismiss.addEventListener("click", () => {
+    strip.hidden = true;
+    try { localStorage.setItem(ORIENT_KEY, "done"); } catch { /* private mode keeps the strip dismissed for this session only */ }
+  });
+}
+
 applyStatic(document);
+initGloss();
+orientation();
+paintLanguageSwitch();
 byId("language-switch").addEventListener("click", () => toggle());
+onChange(paintLanguageSwitch);
 onChange((next) => store.patch({ language: next }));
 document.addEventListener("workspace:enter", (event) => {
   const workspace = (event.detail || {}).workspace || store.get().workspace;

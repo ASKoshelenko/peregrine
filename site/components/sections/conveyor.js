@@ -33,6 +33,7 @@ export function mountConveyor({ store, registry }) {
       expandedId: state.expandedStage,
       onExpand: (id) => store.patch({ expandedStage: id }),
       onStatus: (text) => { status.textContent = text; },
+      onDone: () => { status.textContent = t("plain.laneDone"); },
     });
     const recorded = pipeline.stages.find((stage) => stage.id === "train")?.duration_recorded;
     const key = recorded === RECORDED_DURATION ? "laneRecordedNote" : "laneRecordedNoteShort";

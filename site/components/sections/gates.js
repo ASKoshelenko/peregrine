@@ -19,6 +19,7 @@ export function mountGateLab({ store }) {
   const stripValue = byId("verdict-strip-value");
   const stripNote = byId("verdict-strip-note");
   const status = byId("gate-status");
+  const plain = byId("gate-plain");
   const lineage = byId("lineage-toggle");
   const reset = byId("reset-gates");
   let gates = [];
@@ -91,6 +92,8 @@ export function mountGateLab({ store }) {
     card.querySelector("p").textContent = failed.length ? t("firstRefusal", { q: `${failed[0].gate.gate_id} · ${gateName(failed[0].gate)}` }) : t("allBudgetsAccept");
     stripValue.textContent = verdict;
     stripNote.textContent = failed.length ? t("firstRefusal", { q: failed[0].gate.gate_id }) : t("allBudgetsAccept");
+    const touched = Object.keys(scenario.budgets).length > 0 || scenario.lineage === false;
+    plain.textContent = !touched ? "" : failed.length ? t("plain.gateBlock", { q: failed[0].gate.gate_id }) : t("plain.gatePass");
     strip.classList.toggle("verdict-block", failed.length > 0);
     strip.classList.toggle("verdict-pass", failed.length === 0);
     if (previous === "PROMOTE" && verdict === "BLOCK" && !reduced()) {
@@ -115,6 +118,7 @@ export function mountGateLab({ store }) {
 
   function fail(message) {
     card.className = "verdict-card";
+    plain.textContent = "";
     card.querySelector("strong").textContent = "—";
     card.querySelector("p").textContent = `${t("scenarioUnavailable")} · ${t("evidenceRequired")} ${message}`;
   }

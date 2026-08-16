@@ -15,6 +15,7 @@ export function initialState() {
     automationLane: null,
     gateScenario: { budgets: {}, lineage: true },
     predict: { status: "idle", result: null },
+    scope: { status: "idle", result: null },
   };
 }
 

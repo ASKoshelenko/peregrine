@@ -381,7 +381,7 @@
       "source": "infra/gcp/terraform/README.md#L21-L30",
       "meta": [
         { "label": { "en": "plans retained", "uk": "збережені плани" }, "value": "peregrine-serving-bootstrap.tfplan · peregrine-serving-release.tfplan", "source": "infra/gcp/terraform/peregrine-serving-release.tfplan" },
-        { "label": { "en": "bootstrap conditional", "uk": "умова bootstrap" }, "value": "count = var.service_image == \"\" ? 0 : 1", "source": "infra/gcp/terraform/serving.tf#L42" },
+        { "label": { "en": "bootstrap conditional", "uk": "умова bootstrap" }, "value": "count = var.service_image == \"\" ? 0 : 1", "source": "infra/gcp/terraform/serving.tf#L51" },
         { "label": { "en": "digest admission", "uk": "допуск за digest" }, "value": "@sha256:[0-9a-f]{64}$", "source": "infra/gcp/terraform/variables.tf#L23-L26" },
         { "label": { "en": "project lock", "uk": "фіксація проєкту" }, "value": "peregrine-edge-mlops", "source": "infra/gcp/terraform/variables.tf#L1-L10" }
       ],
@@ -392,7 +392,7 @@
           "artifact": { "en": "artifactregistry.googleapis.com · run.googleapis.com", "uk": "artifactregistry.googleapis.com · run.googleapis.com" },
           "control": { "en": "disable_on_destroy = false keeps teardown from breaking sibling resources", "uk": "disable_on_destroy = false не дає видаленню зламати сусідні ресурси" },
           "outcome": "PASS",
-          "source": "infra/gcp/terraform/serving.tf#L1-L10",
+          "source": "infra/gcp/terraform/serving.tf#L1-L11",
           "depends_on": [],
           "lane": "serving",
           "pace_ms": 640
@@ -403,7 +403,7 @@
           "artifact": { "en": "peregrine-serving · DOCKER · us-central1", "uk": "peregrine-serving · DOCKER · us-central1" },
           "control": { "en": "cleanup_policies: delete UNTAGGED older_than 604800s", "uk": "cleanup_policies: видаляти UNTAGGED старші за 604800s" },
           "outcome": "PASS",
-          "source": "infra/gcp/terraform/serving.tf#L12-L32",
+          "source": "infra/gcp/terraform/serving.tf#L13-L33",
           "depends_on": ["apis"],
           "lane": "serving",
           "pace_ms": 640
@@ -411,10 +411,10 @@
         {
           "id": "sa",
           "name": { "en": "Runtime identity", "uk": "Runtime-identity" },
-          "artifact": { "en": "peregrine-runtime · no project roles", "uk": "peregrine-runtime · без жодної ролі в проєкті" },
-          "control": { "en": "No project roles: the immutable model is bundled in the image.", "uk": "Жодних ролей у проєкті: незмінна модель вкладена в образ." },
+          "artifact": { "en": "peregrine-runtime · one project role", "uk": "peregrine-runtime · одна роль у проєкті" },
+          "control": { "en": "One project role, roles/aiplatform.user, for the cloud scope call only: the released model is bundled in the image.", "uk": "Одна роль у проєкті, roles/aiplatform.user, лише для хмарного scope-виклику: випущена модель вкладена в образ." },
           "outcome": "PASS",
-          "source": "infra/gcp/terraform/serving.tf#L34-L39",
+          "source": "infra/gcp/terraform/serving.tf#L35-L48",
           "depends_on": ["apis"],
           "lane": "serving",
           "pace_ms": 640
@@ -425,7 +425,7 @@
           "artifact": { "en": "digest-pinned revision of service peregrine", "uk": "ревізія сервісу peregrine, закріплена за digest" },
           "control": { "en": "timeout 30s · concurrency 4 · scale 0→1 · cpu_idle · /readyz 24×5s · /healthz 30s", "uk": "timeout 30s · concurrency 4 · масштаб 0→1 · cpu_idle · /readyz 24×5s · /healthz 30s" },
           "outcome": "PASS",
-          "source": "infra/gcp/terraform/serving.tf#L41-L110",
+          "source": "infra/gcp/terraform/serving.tf#L50-L119",
           "depends_on": ["registry", "sa"],
           "lane": "serving",
           "pace_ms": 640,
@@ -448,7 +448,7 @@
           "artifact": { "en": "allUsers · roles/run.invoker", "uk": "allUsers · roles/run.invoker" },
           "control": { "en": "the only public grant in the project, scoped to one service", "uk": "єдиний публічний grant у проєкті, обмежений одним сервісом" },
           "outcome": "PASS",
-          "source": "infra/gcp/terraform/serving.tf#L112-L120",
+          "source": "infra/gcp/terraform/serving.tf#L121-L129",
           "depends_on": ["cloudrun"],
           "lane": "serving",
           "pace_ms": 640
@@ -780,7 +780,7 @@
           "control": { "en": "startup sha256 check · min 0 / max 1 · request-only CPU", "uk": "перевірка sha256 на старті · min 0 / max 1 · CPU лише на запит" },
           "outcome": "PASS",
           "truth": "LIVE",
-          "source": "infra/gcp/terraform/serving.tf#L41-L110 + src/peregrine/api.py#L144-L163",
+          "source": "infra/gcp/terraform/serving.tf#L50-L119 + src/peregrine/api.py#L188-L207",
           "depends_on": ["gate"],
           "lane": "SERVE",
           "pace_ms": 640,
@@ -799,15 +799,15 @@
       "name": { "en": "One request, five hops", "uk": "Один запит, пʼять хопів" },
       "truth": "DEFINED",
       "trigger": "POST /api/predict",
-      "source": "src/peregrine/api.py#L166-L204",
+      "source": "src/peregrine/api.py#L210-L234",
       "boundary": {
         "en": "hop timing illustrative — only total request time and inference_ms are measured",
         "uk": "тайминги хопів ілюстративні — вимірюються лише загальний час запиту та inference_ms"
       },
       "meta": [
-        { "label": { "en": "upload cap", "uk": "ліміт завантаження" }, "value": "5 MiB", "source": "src/peregrine/api.py#L19" },
-        { "label": { "en": "accepted types", "uk": "дозволені типи" }, "value": "image/jpeg · image/png · image/webp", "source": "src/peregrine/api.py#L20" },
-        { "label": { "en": "retention", "uk": "зберігання" }, "value": "processed in memory; image bytes are not retained", "source": "src/peregrine/api.py#L203" }
+        { "label": { "en": "upload cap", "uk": "ліміт завантаження" }, "value": "5 MiB", "source": "src/peregrine/api.py#L25" },
+        { "label": { "en": "accepted types", "uk": "дозволені типи" }, "value": "image/jpeg · image/png · image/webp", "source": "src/peregrine/api.py#L26" },
+        { "label": { "en": "retention", "uk": "зберігання" }, "value": "processed in memory; image bytes are not retained", "source": "src/peregrine/api.py#L233" }
       ],
       "stages": [
         {
@@ -816,7 +816,7 @@
           "artifact": { "en": "image bytes streamed from the page", "uk": "байти зображення, передані зі сторінки" },
           "control": { "en": "5 MiB cap enforced on the declared length and again while streaming", "uk": "ліміт 5 MiB перевіряється за заявленою довжиною і повторно під час стрімінгу" },
           "outcome": "DEFINED",
-          "source": "src/peregrine/api.py#L166-L186",
+          "source": "src/peregrine/api.py#L269-L286",
           "depends_on": [],
           "pace_ms": 600
         },
@@ -826,7 +826,7 @@
           "artifact": { "en": "CNAME for peregrine.devopsdive.com", "uk": "CNAME для peregrine.devopsdive.com" },
           "control": { "en": "the hostname is delegated, the service is not", "uk": "делеговано лише hostname, а не сам сервіс" },
           "outcome": "DEFINED",
-          "source": "site/platform-events.json#domain + src/peregrine/api.py#L92-L99",
+          "source": "site/platform-events.json#domain + src/peregrine/api.py#L133-L146",
           "depends_on": ["browser"],
           "pace_ms": 600
         },
@@ -846,7 +846,7 @@
           "artifact": { "en": "the digest-pinned revision wakes from zero", "uk": "ревізія, закріплена за digest, прокидається з нуля" },
           "control": { "en": "request-only CPU · concurrency 4 · max 1 instance · timeout 30s", "uk": "CPU лише на запит · concurrency 4 · максимум 1 інстанс · timeout 30s" },
           "outcome": "DEFINED",
-          "source": "infra/gcp/terraform/serving.tf#L41-L110 + src/peregrine/api.py#L144-L163",
+          "source": "infra/gcp/terraform/serving.tf#L50-L119 + src/peregrine/api.py#L188-L207",
           "depends_on": ["gfe"],
           "pace_ms": 600,
           "live": [
@@ -861,9 +861,9 @@
           "id": "onnx",
           "name": { "en": "ONNX Runtime", "uk": "ONNX Runtime" },
           "artifact": { "en": "boxes and lineage, no stored image", "uk": "рамки й походження, без збереження зображення" },
-          "control": { "en": "the loaded model must match PEREGRINE_MODEL_SHA256 or readiness fails (src/peregrine/api.py#L253-L261)", "uk": "завантажена модель має збігатися з PEREGRINE_MODEL_SHA256, інакше readiness падає (src/peregrine/api.py#L253-L261)" },
+          "control": { "en": "the loaded model must match PEREGRINE_MODEL_SHA256 or readiness fails (src/peregrine/api.py#L417-L425)", "uk": "завантажена модель має збігатися з PEREGRINE_MODEL_SHA256, інакше readiness падає (src/peregrine/api.py#L417-L425)" },
           "outcome": "DEFINED",
-          "source": "src/peregrine/api.py#L187-L204",
+          "source": "src/peregrine/api.py#L217-L234",
           "depends_on": ["cloudrun"],
           "pace_ms": 600,
           "live": [
@@ -917,7 +917,7 @@
       "from": "iac.cloudrun",
       "to": "runtime.cloudrun",
       "artifact": { "en": "live revision", "uk": "жива ревізія" },
-      "source": "src/peregrine/api.py#L144-L163"
+      "source": "src/peregrine/api.py#L188-L207"
     },
     {
       "from": "train.colab",

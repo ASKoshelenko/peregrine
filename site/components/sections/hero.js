@@ -1,5 +1,6 @@
 import { countUp, observeOnce, reduced } from "../motion.js";
 import { esc, t } from "../i18n.js";
+import { glossMark } from "../gloss.js";
 import { fmtVal } from "../pipeline-model.js";
 
 const byId = (id) => document.getElementById(id);
@@ -12,10 +13,10 @@ function metrics(run) {
   const drop = onnx && int8 ? fmtVal("map4", onnx.map50_proxy - int8.map50_proxy) : null;
   const smaller = onnx && int8 ? ratio(onnx.size_mb, int8.size_mb) : null;
   return [
-    { label: t("metricQuality"), value: onnx && int8 ? `${fmtVal("map4", onnx.map50_proxy)} → ${fmtVal("map4", int8.map50_proxy)}` : "—", note: drop ? t("metricQuantCost", { v: drop }) : t("noSubstitution") },
-    { label: t("metricP95"), value: int8 ? `${fmtVal("ms", int8.p95_ms)} ms` : "—", note: int8 ? t("metricProtocol") : t("noSubstitution") },
-    { label: t("metricInt8"), value: int8 ? `${fmtVal("mb", int8.size_mb)} MB` : "—", note: smaller ? t("metricSmaller", { n: smaller }) : t("noSubstitution") },
-    { label: t("metricVerdict"), value: verdict.passed === undefined ? "—" : verdict.passed ? "PROMOTE" : "BLOCK", note: verdict.gates ? t("metricGates", { n: verdict.gates.length }) : t("noSubstitution") },
+    { gloss: "map", label: t("metricQuality"), value: onnx && int8 ? `${fmtVal("map4", onnx.map50_proxy)} → ${fmtVal("map4", int8.map50_proxy)}` : "—", note: drop ? t("metricQuantCost", { v: drop }) : t("noSubstitution") },
+    { gloss: "p95", label: t("metricP95"), value: int8 ? `${fmtVal("ms", int8.p95_ms)} ms` : "—", note: int8 ? t("metricProtocol") : t("noSubstitution"), noteGloss: "benchprotocol", noteMarked: Boolean(int8) },
+    { gloss: "quant", label: t("metricInt8"), value: int8 ? `${fmtVal("mb", int8.size_mb)} MB` : "—", note: smaller ? t("metricSmaller", { n: smaller }) : t("noSubstitution") },
+    { gloss: "verdict", label: t("metricVerdict"), value: verdict.passed === undefined ? "—" : verdict.passed ? "PROMOTE" : "BLOCK", note: verdict.gates ? t("metricGates", { n: verdict.gates.length }) : t("noSubstitution") },
   ];
 }
 
@@ -43,7 +44,7 @@ export function mountHero({ store }) {
     const state = store.get();
     const run = state.evidence;
     if (!run) return;
-    host.innerHTML = metrics(run).map((item, index) => `<article class="metric" style="--i:${index}"><span>${esc(item.label)}</span><strong>${esc(item.value)}</strong><small>${esc(item.note)}</small></article>`).join("");
+    host.innerHTML = metrics(run).map((item, index) => `<article class="metric" style="--i:${index}"><span>${glossMark(item.gloss, item.label)}</span><strong>${esc(item.value)}</strong><small>${item.noteMarked ? glossMark(item.noteGloss, item.note) : esc(item.note)}</small></article>`).join("");
     const passed = run.release_verdict?.passed;
     verdictEl.textContent = passed === undefined ? "—" : passed ? "PROMOTE" : "BLOCK";
     verdictEl.className = passed === undefined ? "" : passed ? "pass" : "block";

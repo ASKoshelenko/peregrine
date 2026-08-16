@@ -31,6 +31,40 @@ EVENT_FIELDS = (
 )
 IDENT = re.compile(r"[A-Za-z_$][\w$]*")
 DICT_ANCHOR = re.compile(r"export\s+(?:default|const\s+[\w$]+\s*=)\s*\{")
+GLOSS_REF = re.compile(r"""data-g=["']([\w-]+)["']""")
+GLOSS_CALL = re.compile(r"""glossMark\(["']([\w-]+)""")
+GLOSS_FIELD = re.compile(r"""\b(?:gloss|noteGloss):\s*["']([\w-]+)["']""")
+PLAIN_NAMESPACES = ("gloss.", "plain.", "scope.")
+PLAIN_WHITELIST = (
+    "Q1—Q5",
+    "Q1",
+    "Q2",
+    "Q3",
+    "Q4",
+    "Q5",
+    "mAP@0.50",
+    "SHA-256",
+    "sha256",
+    "p95",
+    "p50",
+    "INT8",
+    "FP32",
+    "x86",
+    "ARM64",
+)
+PLAIN_NUMERALS = re.compile(r"(?<!\d)(?:95|100)(?!\d)")
+CHAPTERS = {
+    "platform",
+    "pipeline",
+    "control",
+    "gates",
+    "detector",
+    "trace",
+    "fleet",
+    "ops",
+    "story",
+    "method",
+}
 
 
 def _read(path: Path) -> str:
@@ -139,6 +173,80 @@ def _object_key_paths(text: str, start: int) -> set[str]:
             pending = token
             keys.add(".".join([*stack[1:], token]))
     return keys
+
+
+def _object_string_values(text: str, start: int) -> dict[str, str]:
+    values: dict[str, str] = {}
+    stack: list[str] = []
+    pending, expect = "", ""
+    index, size, depth = start, len(text), 0
+    while index < size:
+        head = text[index : index + 2]
+        char = text[index]
+        if head == "//":
+            index = text.find("\n", index)
+            if index < 0:
+                break
+            continue
+        if head == "/*":
+            index = text.find("*/", index) + 2
+            continue
+        if char in "\"'`":
+            cursor = index + 1
+            while cursor < size and text[cursor] != char:
+                cursor += 2 if text[cursor] == "\\" else 1
+            token, index, quoted = text[index + 1 : cursor], cursor + 1, True
+        elif IDENT.match(text, index):
+            match = IDENT.match(text, index)
+            assert match
+            token, index, quoted = match.group(0), match.end(), False
+        elif char in "{[":
+            depth += 1
+            stack.append(pending)
+            pending, expect = "", ""
+            index += 1
+            continue
+        elif char in "}]":
+            depth -= 1
+            if stack:
+                stack.pop()
+            pending, expect = "", ""
+            index += 1
+            if depth == 0:
+                break
+            continue
+        else:
+            index += 1
+            continue
+        cursor = index
+        while cursor < size and text[cursor] in " \t\r\n":
+            cursor += 1
+        if cursor < size and text[cursor] == ":":
+            pending = token
+            expect = ".".join([*stack[1:], token])
+            continue
+        if expect and quoted:
+            values[expect] = token
+        expect = ""
+    return values
+
+
+def _dict_strings(path: Path) -> dict[str, str]:
+    text = _read(path)
+    anchor = DICT_ANCHOR.search(text)
+    assert anchor, f"{path.name} must export a dictionary object literal"
+    return _object_string_values(text, text.index("{", anchor.start()))
+
+
+def _gloss_references() -> set[str]:
+    ids: set[str] = set()
+    for path in [INDEX, EN, UK, *sorted(SITE.glob("components/**/*.js"))]:
+        text = _read(path)
+        ids |= set(GLOSS_REF.findall(text))
+        ids |= set(GLOSS_CALL.findall(text))
+        if path.suffix == ".js" and path.parent.name != "data":
+            ids |= set(GLOSS_FIELD.findall(text))
+    return ids
 
 
 def _dict_keys(path: Path) -> set[str]:
@@ -269,6 +377,45 @@ def test_every_index_translation_key_exists_in_both_dictionaries() -> None:
     assert used, "index.html must drive its static copy through data-i18n keys"
     assert sorted(used - en_keys) == [], "index.html keys absent from site/data/i18n.en.js"
     assert sorted(used - uk_keys) == [], "index.html keys absent from site/data/i18n.uk.js"
+
+
+def test_every_gloss_reference_resolves_in_both_dictionaries() -> None:
+    en_keys, uk_keys = _require_dictionaries()
+    ids = _gloss_references()
+    assert ids, "the explanation layer must mark at least one term with data-g"
+    for gloss_id in sorted(ids):
+        for keys, name in ((en_keys, EN.name), (uk_keys, UK.name)):
+            for field in ("term", "short"):
+                assert f"gloss.{gloss_id}.{field}" in keys, (
+                    f"gloss.{gloss_id}.{field} is absent from {name}"
+                )
+
+
+def test_plain_layer_never_ships_a_number() -> None:
+    for path in (EN, UK):
+        strings = _dict_strings(path)
+        assert any(key.startswith("gloss.") for key in strings), f"{path.name} carries no glosses"
+        for key, value in strings.items():
+            if not key.startswith(PLAIN_NAMESPACES):
+                continue
+            rest = value
+            for token in PLAIN_WHITELIST:
+                rest = rest.replace(token, " ")
+            rest = PLAIN_NUMERALS.sub(" ", rest)
+            assert not re.search(r"\d", rest), (
+                f"{path.name} {key} hardcodes a number; measured values belong to evidence "
+                f"renderers: {value!r}"
+            )
+
+
+def test_every_chapter_has_a_plain_card() -> None:
+    for keys, name in zip(_require_dictionaries(), (EN.name, UK.name), strict=True):
+        chapters = {key.split(".")[-1] for key in keys if key.startswith("plain.chapter.")}
+        assert chapters == CHAPTERS, f"{name} plain.chapter covers {sorted(chapters)}"
+    mounted = re.findall(r"""data-i18n-html=["']plain\.chapter\.([\w-]+)["']""", _read(INDEX))
+    assert sorted(mounted) == sorted(CHAPTERS), (
+        f"index.html mounts explain-cards for {sorted(mounted)}"
+    )
 
 
 def test_the_site_never_ships_a_fabricated_command_or_number() -> None:

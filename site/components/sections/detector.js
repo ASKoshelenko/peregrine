@@ -6,6 +6,8 @@ const byId = (id) => document.getElementById(id);
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const COPY_MS = 1500;
+const IN_DOMAIN = 0.5;
+const inDomain = (result) => (result?.detections || []).some((item) => Number(item.confidence) >= IN_DOMAIN);
 
 export function mountDetector({ store, api }) {
   const input = byId("image-input");
@@ -26,9 +28,18 @@ export function mountDetector({ store, api }) {
   const verify = byId("verify-chip");
   const verifyValue = byId("verify-value");
   const detections = byId("detection-list");
+  const plain = byId("detector-plain");
+  const samples = byId("detector-samples");
+  const lane = byId("scope-lane");
+  const scopeRun = byId("scope-run");
+  const scopeStatus = byId("scope-status");
+  const scopeResult = byId("scope-result");
+  const scopeChip = byId("scope-chip");
+  const scopeSaid = byId("scope-description");
   let file = null;
   let previewUrl = "";
   let copyTimer = 0;
+  let busy = false;
   let said = { key: "chooseImage", params: null, error: false };
 
   const pinnedSha = () => {
@@ -101,15 +112,71 @@ export function mountDetector({ store, api }) {
       : `<p>${esc(t("noObjectsThreshold"))}</p>`;
   }
 
+  function paintPlain() {
+    const state = store.get().predict;
+    const result = state.status === "done" ? state.result : null;
+    plain.hidden = state.status !== "pending" && !result;
+    if (plain.hidden) { plain.textContent = ""; return; }
+    if (state.status === "pending") { plain.textContent = t("plain.coldStartNote"); return; }
+    plain.textContent = t(result.detections.length ? "plain.detected" : "plain.detectedNone", { n: result.detections.length });
+  }
+
+  function paintScope() {
+    const state = store.get().predict;
+    const scope = store.get().scope;
+    lane.hidden = !(state.status === "done" && state.result && !inDomain(state.result));
+    if (lane.hidden) return;
+    scopeRun.disabled = scope.status === "pending";
+    scopeStatus.textContent = scope.status === "pending" ? t("scope.running") : scope.status === "error" ? t("scope.unavailable") : "";
+    const answer = scope.status === "done" && scope.result ? scope.result.description : "";
+    scopeResult.hidden = !answer;
+    scopeSaid.textContent = answer;
+    scopeChip.innerHTML = answer ? truthChip("LIVE", { inline: true }) : "";
+    if (answer) applyStatic(scopeChip);
+  }
+
+  function paintSamples() {
+    for (const button of samples.querySelectorAll("[data-sample]")) {
+      const image = button.querySelector("img");
+      if (image) image.alt = t("scope.sampleAlt", { n: button.dataset.sample });
+    }
+  }
+
+  async function askScope() {
+    if (!file || store.get().scope.status === "pending") return;
+    store.patch({ scope: { status: "pending", result: null } });
+    try {
+      const response = await fetch(`${api}/api/scope`, { method: "POST", headers: { "Content-Type": file.type }, body: file });
+      const payload = await response.json();
+      if (!response.ok || !payload.description) throw new Error(payload.detail || `API HTTP ${response.status}`);
+      store.patch({ scope: { status: "done", result: payload } });
+    } catch {
+      store.patch({ scope: { status: "error", result: null } });
+    }
+  }
+
+  async function useSample(n) {
+    if (busy) return;
+    try {
+      const response = await fetch(`./assets/samples/sample-${n}.jpg`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      choose(new File([await response.blob()], `sample-${n}.jpg`, { type: "image/jpeg" }));
+      await predict();
+    } catch (error) {
+      status("inferenceFailed", { msg: error instanceof Error ? error.message : String(error) }, true);
+    }
+  }
+
   async function predict() {
-    if (!file) return;
+    if (!file || busy) return;
+    busy = true;
     const started = performance.now();
     runButton.disabled = true;
     runButton.textContent = t("wakingModel");
     boxes.classList.remove("is-drawn");
     if (!reduced()) stage.classList.add("is-scanning");
     status(reduced() ? "coldStartWait" : "liveRequestInFlight");
-    store.patch({ predict: { status: "pending", result: null, error: null } });
+    store.patch({ predict: { status: "pending", result: null, error: null }, scope: { status: "idle", result: null } });
     try {
       const response = await fetch(`${api}/api/predict?confidence=${confidence.value}`, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       const payload = await response.json();
@@ -121,6 +188,7 @@ export function mountDetector({ store, api }) {
       status("inferenceFailed", { msg: error.message }, true);
       store.patch({ predict: { status: "error", result: null, error: error.message } });
     } finally {
+      busy = false;
       stage.classList.remove("is-scanning");
       runButton.disabled = false;
       runButton.textContent = t("runInference");
@@ -133,6 +201,11 @@ export function mountDetector({ store, api }) {
   zone.addEventListener("drop", (event) => choose(event.dataTransfer.files[0]));
   confidence.addEventListener("input", () => { output.value = confidence.value; });
   runButton.addEventListener("click", predict);
+  scopeRun.addEventListener("click", askScope);
+  samples.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-sample]");
+    if (button) useSample(button.dataset.sample);
+  });
   hashCopy.addEventListener("click", async () => {
     if (!hashCopy.dataset.copy) return;
     try { await navigator.clipboard.writeText(hashCopy.dataset.copy); } catch { return; }
@@ -142,13 +215,20 @@ export function mountDetector({ store, api }) {
   });
 
   paintHash(null);
+  paintSamples();
+  paintPlain();
+  paintScope();
   hashRow.hidden = false;
+  store.subscribe(["predict", "scope"], () => { paintPlain(); paintScope(); });
   store.subscribe(["language"], () => {
     status(said.key, said.params, said.error);
     if (file) preview.alt = t("aria.uploadedImage", { name: file.name });
     runButton.textContent = t(store.get().predict.status === "pending" ? "wakingModel" : "runInference");
     paintVerify(store.get().predict.result);
     paintDetections(store.get().predict.result);
+    paintSamples();
+    paintPlain();
+    paintScope();
   });
   store.subscribe(["pipelines"], () => paintVerify(store.get().predict.result));
 }

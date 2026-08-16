@@ -1,15 +1,24 @@
 import io
 import json
 from asyncio import run
+from collections.abc import Callable, Iterator
 
+import pytest
 from fastapi import HTTPException
 from PIL import Image
 from starlette.requests import Request
 from starlette.types import Message
 
 import peregrine.api as api
-from peregrine.api import PredictRequest, healthz, platform, predict, predict_image
+from peregrine.api import PredictRequest, healthz, platform, predict, predict_image, scope_image
 from peregrine.inference import DetectionResult, InferenceResult
+
+
+@pytest.fixture(autouse=True)
+def _empty_scope_budget() -> Iterator[None]:
+    api._scope_calls.clear()
+    yield
+    api._scope_calls.clear()
 
 
 def test_healthz_contract():
@@ -71,7 +80,12 @@ def _png() -> bytes:
     return output.getvalue()
 
 
-def _request(payload: bytes, content_type: str, content_length: str | None = None) -> Request:
+def _request(
+    payload: bytes,
+    content_type: str,
+    content_length: str | None = None,
+    path: str = "/api/predict",
+) -> Request:
     sent = False
 
     async def receive() -> Message:
@@ -88,7 +102,7 @@ def _request(payload: bytes, content_type: str, content_length: str | None = Non
         {
             "type": "http",
             "method": "POST",
-            "path": "/api/predict",
+            "path": path,
             "headers": headers,
         },
         receive,
@@ -133,3 +147,113 @@ def test_live_predict_rejects_invalid_content_length() -> None:
         assert error.status_code == 400
     else:
         raise AssertionError("invalid Content-Length was accepted")
+
+
+def _scope_request(content_length: str | None = None) -> Request:
+    return _request(_png(), "image/png", content_length, path="/api/scope")
+
+
+def _scope_reply(answer: str) -> Callable[[bytes, str], str]:
+    def completion(payload: bytes, content_type: str) -> str:
+        assert payload
+        assert content_type == "image/png"
+        return answer
+
+    return completion
+
+
+def _scope_status(request: Request) -> int:
+    try:
+        run(scope_image(request))
+    except HTTPException as error:
+        return error.status_code
+    return 200
+
+
+def test_scope_route_is_registered_under_the_public_api_prefix() -> None:
+    assert "/api/scope" in {route.path for route in api.app.routes}
+
+
+def test_scope_returns_a_cloud_vlm_judgement_from_fenced_json(monkeypatch) -> None:
+    monkeypatch.setattr(
+        api,
+        "_scope_completion",
+        _scope_reply(
+            '```json\n{"in_domain": true, '
+            '"description": "A warehouse aisle with pallets and cartons."}\n```'
+        ),
+    )
+    response = run(scope_image(_scope_request()))
+    assert response.in_domain is True
+    assert response.description == "A warehouse aisle with pallets and cartons."
+    assert response.model_family == "cloud-vlm"
+
+
+def test_scope_reports_an_out_of_domain_frame_without_naming_people(monkeypatch) -> None:
+    monkeypatch.setattr(
+        api,
+        "_scope_completion",
+        _scope_reply('{"in_domain": false, "description": "A person standing in a kitchen."}'),
+    )
+    response = run(scope_image(_scope_request()))
+    assert response.in_domain is False
+    assert response.description == "A person standing in a kitchen."
+
+
+def test_scope_degrades_to_unavailable_when_the_model_refuses(monkeypatch) -> None:
+    monkeypatch.setattr(api, "_scope_completion", _scope_reply("I cannot help with that."))
+    try:
+        run(scope_image(_scope_request()))
+    except HTTPException as error:
+        assert error.status_code == 503
+        assert error.detail == "scope unavailable"
+    else:
+        raise AssertionError("a refusal was rendered as a scope answer")
+
+
+def test_scope_degrades_to_unavailable_when_the_cloud_call_fails(monkeypatch) -> None:
+    def explode(payload: bytes, content_type: str) -> str:
+        raise OSError("vertex is unreachable")
+
+    monkeypatch.setattr(api, "_scope_completion", explode)
+    assert _scope_status(_scope_request()) == 503
+
+
+def test_scope_degrades_to_unavailable_when_credentials_are_missing(monkeypatch) -> None:
+    class _CredentialsError(Exception):
+        pass
+
+    def unauthorised(payload: bytes, content_type: str) -> str:
+        raise _CredentialsError("no default credentials")
+
+    monkeypatch.setattr(api, "_scope_completion", unauthorised)
+    assert _scope_status(_scope_request()) == 503
+
+
+def test_scope_rejects_unsupported_media_type(monkeypatch) -> None:
+    monkeypatch.setattr(api, "_scope_completion", _scope_reply('{"in_domain": true, "d": "x"}'))
+    assert _scope_status(_request(b"not an image", "text/plain", path="/api/scope")) == 415
+    assert not api._scope_calls
+
+
+def test_scope_rejects_declared_oversize(monkeypatch) -> None:
+    monkeypatch.setattr(api, "_scope_completion", _scope_reply('{"in_domain": true, "d": "x"}'))
+    assert _scope_status(_scope_request(str(api.MAX_UPLOAD_BYTES + 1))) == 413
+    assert not api._scope_calls
+
+
+def test_scope_rate_limit_refuses_the_call_beyond_the_window_budget(monkeypatch) -> None:
+    monkeypatch.setattr(
+        api,
+        "_scope_completion",
+        _scope_reply('{"in_domain": true, "description": "A storage rack holding cartons."}'),
+    )
+    for _ in range(api.SCOPE_RATE_LIMIT):
+        assert _scope_status(_scope_request()) == 200
+    try:
+        run(scope_image(_scope_request()))
+    except HTTPException as error:
+        assert error.status_code == 429
+        assert error.detail == "scope rate limit reached"
+    else:
+        raise AssertionError("the global scope budget was exceeded")

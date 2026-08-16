@@ -4,14 +4,20 @@ from __future__ import annotations
 
 import json
 import os
+import urllib.request
+from base64 import b64encode
+from collections import deque
 from collections.abc import Awaitable, Callable
+from importlib import import_module
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from peregrine import __version__
 from peregrine.inference import InferenceError, OnnxDetector
@@ -21,6 +27,31 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
 REVALIDATE_CACHE = "no-cache"
 _NON_PREFIXED_API_PATHS = frozenset({"/healthz", "/readyz", "/predict"})
+
+SCOPE_PROJECT = os.getenv("PEREGRINE_SCOPE_PROJECT", "peregrine-edge-mlops")
+SCOPE_LOCATION = os.getenv("PEREGRINE_SCOPE_LOCATION", "us-central1")
+SCOPE_MODEL = os.getenv("PEREGRINE_SCOPE_MODEL", "gemini-2.5-flash-lite")
+SCOPE_MODEL_FAMILY = "cloud-vlm"
+SCOPE_TIMEOUT_S = 8.0
+SCOPE_TOKEN_TIMEOUT_S = 2.0
+SCOPE_MAX_OUTPUT_TOKENS = 120
+SCOPE_RATE_LIMIT = 20
+SCOPE_RATE_WINDOW_S = 60.0
+SCOPE_DESCRIPTION_CHARS = 240
+SCOPE_UNAVAILABLE = "scope unavailable"
+SCOPE_RATE_LIMITED = "scope rate limit reached"
+SCOPE_TOKEN_URL = (
+    "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
+)
+SCOPE_AUTH_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
+SCOPE_PROMPT = (
+    "Return only a JSON object with exactly two keys: in_domain (boolean) and description "
+    "(string). Set in_domain to true only when the photograph shows a warehouse, stockroom, "
+    "loading bay or storage aisle holding pallets, cartons, boxes, racking or shelving; "
+    "otherwise set it to false. Set description to one short neutral sentence naming what the "
+    "image shows. Never identify, name or characterise anybody: refer to any human only as "
+    "'a person'. Add no other keys, no prose and no code fences."
+)
 
 
 class PredictRequest(BaseModel):
@@ -66,6 +97,18 @@ class LivePredictResponse(BaseModel):
     confidence_threshold: float
     detections: list[Detection]
     retention: str
+
+
+class ScopeResponse(BaseModel):
+    """Cloud vision-language judgement about whether an uploaded frame is a warehouse scene."""
+
+    in_domain: bool
+    description: str
+    model_family: str
+
+
+class ScopeUnavailable(RuntimeError):
+    """Raised when the cloud scope model cannot be reached or cannot be parsed."""
 
 
 class PlatformResponse(BaseModel):
@@ -118,6 +161,7 @@ async def cache_control(
 
 
 _detector: OnnxDetector | None = None
+_scope_calls: deque[float] = deque()
 
 
 @app.get("/healthz")
@@ -169,23 +213,9 @@ async def predict_image(
     confidence: float = Query(default=0.25, ge=0.05, le=0.95),
 ) -> LivePredictResponse:
     """Run real ONNX inference on an in-memory JPEG, PNG, or WebP request body."""
-    content_type = request.headers.get("content-type", "").split(";", 1)[0].lower()
-    if content_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(status_code=415, detail="Use a JPEG, PNG, or WebP image.")
-    declared_size = request.headers.get("content-length")
-    if declared_size:
-        try:
-            if int(declared_size) > MAX_UPLOAD_BYTES:
-                raise HTTPException(status_code=413, detail="Image exceeds the 5 MiB limit.")
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail="Invalid Content-Length header.") from error
-    payload = bytearray()
-    async for chunk in request.stream():
-        payload.extend(chunk)
-        if len(payload) > MAX_UPLOAD_BYTES:
-            raise HTTPException(status_code=413, detail="Image exceeds the 5 MiB limit.")
+    _, payload = await _read_image_request(request)
     try:
-        result = _get_detector().predict(bytes(payload), confidence=confidence)
+        result = _get_detector().predict(payload, confidence=confidence)
     except InferenceError as error:
         status_code = 503 if "model" in str(error) or "onnxruntime" in str(error) else 422
         raise HTTPException(status_code=status_code, detail=str(error)) from error
@@ -204,6 +234,19 @@ async def predict_image(
     )
 
 
+@app.post("/api/scope", response_model=ScopeResponse)
+async def scope_image(request: Request) -> ScopeResponse:
+    """Ask a cloud vision-language model whether an uploaded frame is a warehouse scene."""
+    content_type, payload = await _read_image_request(request)
+    if not _scope_reserve():
+        raise HTTPException(status_code=429, detail=SCOPE_RATE_LIMITED)
+    try:
+        answer = await run_in_threadpool(_scope_completion, payload, content_type)
+        return _scope_parse(answer)
+    except Exception as error:
+        raise HTTPException(status_code=503, detail=SCOPE_UNAVAILABLE) from error
+
+
 @app.post("/predict", response_model=PredictResponse)
 def predict(request: PredictRequest) -> PredictResponse:
     """Serve recorded contract predictions for an image id."""
@@ -220,6 +263,127 @@ def predict(request: PredictRequest) -> PredictResponse:
             "aggregate recorded evidence has no per-image predictions; "
             "use /api/predict for live uploaded-image inference"
         ),
+    )
+
+
+async def _read_image_request(request: Request) -> tuple[str, bytes]:
+    """Validate the declared image type and stream the body under the shared upload limit."""
+    content_type = request.headers.get("content-type", "").split(";", 1)[0].lower()
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=415, detail="Use a JPEG, PNG, or WebP image.")
+    declared_size = request.headers.get("content-length")
+    if declared_size:
+        try:
+            if int(declared_size) > MAX_UPLOAD_BYTES:
+                raise HTTPException(status_code=413, detail="Image exceeds the 5 MiB limit.")
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail="Invalid Content-Length header.") from error
+    payload = bytearray()
+    async for chunk in request.stream():
+        payload.extend(chunk)
+        if len(payload) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Image exceeds the 5 MiB limit.")
+    return content_type, bytes(payload)
+
+
+def _scope_reserve() -> bool:
+    """Claim one slot in the rolling-window global budget that protects the cloud quota."""
+    now = monotonic()
+    while _scope_calls and now - _scope_calls[0] >= SCOPE_RATE_WINDOW_S:
+        _scope_calls.popleft()
+    if len(_scope_calls) >= SCOPE_RATE_LIMIT:
+        return False
+    _scope_calls.append(now)
+    return True
+
+
+def _scope_token() -> str:
+    """Read a cloud access token from the metadata server, else from default credentials."""
+    request = urllib.request.Request(SCOPE_TOKEN_URL, headers={"Metadata-Flavor": "Google"})
+    try:
+        with urllib.request.urlopen(request, timeout=SCOPE_TOKEN_TIMEOUT_S) as response:
+            token = json.loads(response.read().decode("utf-8")).get("access_token")
+        if isinstance(token, str) and token:
+            return token
+    except (OSError, ValueError):
+        pass
+    try:
+        auth = import_module("google.auth")
+        transport = import_module("google.auth.transport.requests")
+    except ImportError as error:
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE) from error
+    credentials, _ = auth.default(scopes=[SCOPE_AUTH_SCOPE])
+    credentials.refresh(transport.Request())
+    if not credentials.token:
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE)
+    return str(credentials.token)
+
+
+def _scope_completion(payload: bytes, content_type: str) -> str:
+    """Send one frame to the cloud model and return its raw text; bytes are never retained."""
+    body = json.dumps(
+        {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "inline_data": {
+                                "mime_type": content_type,
+                                "data": b64encode(payload).decode("ascii"),
+                            }
+                        },
+                        {"text": SCOPE_PROMPT},
+                    ],
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0,
+                "maxOutputTokens": SCOPE_MAX_OUTPUT_TOKENS,
+                "responseMimeType": "application/json",
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://{SCOPE_LOCATION}-aiplatform.googleapis.com/v1/projects/{SCOPE_PROJECT}"
+        f"/locations/{SCOPE_LOCATION}/publishers/google/models/{SCOPE_MODEL}:generateContent",
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {_scope_token()}",
+            "Content-Type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=SCOPE_TIMEOUT_S) as response:
+        answer = json.loads(response.read().decode("utf-8"))
+    candidates = answer.get("candidates") if isinstance(answer, dict) else None
+    if not isinstance(candidates, list) or not candidates:
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE)
+    parts = (candidates[0].get("content") or {}).get("parts") or []
+    return "".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
+
+
+def _scope_parse(answer: str) -> ScopeResponse:
+    """Read the model's JSON object out of a possibly fenced reply, or refuse to answer."""
+    text = answer.strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE)
+    try:
+        value = json.loads(text[start : end + 1])
+    except json.JSONDecodeError as error:
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE) from error
+    if not isinstance(value, dict):
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE)
+    description = " ".join(str(value.get("description", "")).split())[:SCOPE_DESCRIPTION_CHARS]
+    if not description:
+        raise ScopeUnavailable(SCOPE_UNAVAILABLE)
+    flag = value.get("in_domain")
+    return ScopeResponse(
+        in_domain=flag is True or (isinstance(flag, str) and flag.strip().lower() == "true"),
+        description=description,
+        model_family=SCOPE_MODEL_FAMILY,
     )
 
 

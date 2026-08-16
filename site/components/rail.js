@@ -118,7 +118,8 @@ function drawerHtml(row, rows, language, registry) {
   const liveRow = event.truth === "LIVE"
     ? `<p class="rail-live">${esc(t("liveRevision"))}<code>${esc(join || "—")}</code>${join ? truthChip("LIVE", { inline: true }) : ""}</p>`
     : "";
-  return `<p class="rail-action">${esc(pick(event, "action", language))}</p>`
+  return (event.outcome === "BLOCK" ? `<p class="plain-note">${esc(t("plain.blockDrawer"))}</p>` : "")
+    + `<p class="rail-action">${esc(pick(event, "action", language))}</p>`
     + `<p class="rail-control"><span>${esc(t("control"))}</span>${esc(pick(event, "control", language))}</p>`
     + liveRow
     + `<p class="rail-cite"><code>${esc(t("rail.source", { path: event.source }))}</code></p>`
@@ -161,6 +162,7 @@ export function renderRail(container, model, { lang: language = lang(), registry
     + `<div class="rail-controls"><label class="rail-scrub-label" for="rail-scrub">${esc(t("rail.scrub"))}</label>`
     + `<input class="rail-scrub" id="rail-scrub" type="range" min="0" max="${total}" step="1" value="${completed}"/>`
     + `<output class="rail-position" for="rail-scrub">${pad(completed)} / ${total}</output></div>`
+    + (blocks > 0 ? `<p class="plain-note rail-block-gloss">${esc(t("plain.blockNote"))}</p>` : "")
     + `<div class="rail-grid"><svg class="rail-draw" aria-hidden="true" focusable="false"></svg>`
     + `<ol class="rail-rows">${plan.items.map((item) => (item.kind === "band" ? bandHtml(item, language) : rowHtml(item, plan.rows, language, registry, declared))).join("")}</ol></div>`
     + `<figcaption class="rail-cite">${esc(t("sourceLine", { path: "site/platform-events.json", field: "events" }))}</figcaption></figure>`;
@@ -269,7 +271,7 @@ export function renderRail(container, model, { lang: language = lang(), registry
     emit(i, immediate);
     if (phaseStartAt(i)) {
       const band = plan.items.find((item) => item.kind === "band" && item.phase === events[i].phase);
-      if (band) say(bandText(band, language));
+      if (band) say(`${bandText(band, language)} — ${t(`plain.phase.${events[i].phase}`)}`);
     }
     paint();
     if (!immediate) reveal(i);
@@ -280,7 +282,7 @@ export function renderRail(container, model, { lang: language = lang(), registry
     active = -1;
     timeline = null;
     paint();
-    say(t("buildSummary", { events: total, blocks }));
+    say(`${t("buildSummary", { events: total, blocks })} ${t("plain.buildDone", { blocks })}`);
   }
 
   function build() {
