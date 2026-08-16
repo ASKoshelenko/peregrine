@@ -74,6 +74,7 @@ export const en = {
 
   sourceLabel: "Source", labelMeasured: "measured", labelBudget: "budget", laneDefault: "default", openGateLab: "Open the gate lab ↑", playLane: "Play the lane ▶", fanInLead: "One committed command composes nine retained fragments into the observed run.", inferenceTime: "Inference time", verifyLabel: "Model verification",
   truthSimulatedNote: "your hypothetical — nothing executed",
+  laneBand: { data: "DATA", train: "TRAIN", convert: "CONVERT", measure: "MEASURE", decide: "DECIDE", serve: "SERVE" },
 
   rail: {
     scrub: "Scrub the build", start: "start — nothing replayed", source: "Source {path}", noParents: "no parents",

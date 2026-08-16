@@ -17,11 +17,19 @@ const paceOf = (stage, truth) => (Number.isFinite(stage.pace_ms) && stage.pace_m
 const away = (href) => (/^https?:/i.test(href) ? ' target="_blank" rel="noreferrer"' : "");
 const row = (label, value) => `<p class="lane-row"><span>${esc(label)}</span><b>${esc(value)}</b></p>`;
 
+const walk = (dict, key) => key.split(".").reduce((node, part) => (node == null ? undefined : node[part]), dict);
+
 function phrase(key, lang, params) {
   if (lang === activeLang()) return t(key, params);
-  const value = DICTS[lang]?.[key] ?? DICTS.en[key];
+  const value = walk(DICTS[lang], key) ?? walk(DICTS.en, key);
   if (typeof value !== "string") return key;
   return params ? value.replace(/\{(\w+)\}/g, (token, slot) => (params[slot] == null ? token : String(params[slot]))) : value;
+}
+
+function bandName(lane, lang) {
+  const key = `laneBand.${String(lane).toLowerCase()}`;
+  const label = phrase(key, lang);
+  return label === key ? lane : label;
 }
 
 function drawerHtml(stage, ctx, ids) {
@@ -48,7 +56,7 @@ function stageHtml(stage, ctx, last, phase) {
   const truth = truthOf(stage, ctx.pipeline);
   const order = ctx.order.get(stage.id) ?? 0;
   const ids = { node: esc(`${ctx.base}-n-${stage.id}`), drawer: esc(`${ctx.base}-d-${stage.id}`) };
-  const band = phase ? `<p class="lane-phase"><code>${esc(phase)}</code></p>` : "";
+  const band = phase ? `<p class="lane-phase"><code>${esc(bandName(phase, ctx.lang))}</code></p>` : "";
   const track = last ? "" : '<span class="lane-track" aria-hidden="true"><i class="lane-fill"></i><i class="lane-token" data-will-change></i></span>';
   const cmd = stage.cmd ? `<code class="lane-cmd">${esc(stage.cmd)}</code>` : "";
   const outcome = stage.outcome === "DEFINED" ? "" : `<span class="lane-outcome">${esc(stage.outcome)}</span>`;
