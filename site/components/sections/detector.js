@@ -16,6 +16,7 @@ export function mountDetector({ store, api }) {
   const empty = byId("canvas-empty");
   const preview = byId("preview-image");
   const boxes = byId("boxes");
+  const labels = byId("box-labels");
   const runButton = byId("run-inference");
   const statusEl = byId("inference-status");
   const confidence = byId("confidence");
@@ -41,6 +42,7 @@ export function mountDetector({ store, api }) {
   let copyTimer = 0;
   let busy = false;
   let said = { key: "chooseImage", params: null, error: false };
+  let frame = null;
 
   const pinnedSha = () => {
     const image = (store.get().pipelines?.pipelines || []).find((pipeline) => pipeline.id === "image");
@@ -64,7 +66,7 @@ export function mountDetector({ store, api }) {
     preview.alt = t("aria.uploadedImage", { name: next.name });
     stage.hidden = false;
     empty.hidden = true;
-    boxes.innerHTML = "";
+    clearBoxes();
     runButton.disabled = false;
     status("fileReady", { name: next.name });
   }
@@ -86,15 +88,66 @@ export function mountDetector({ store, api }) {
     hashCopy.hidden = !value;
   }
 
+  function clearBoxes() {
+    frame = null;
+    boxes.innerHTML = "";
+    labels.innerHTML = "";
+    boxes.classList.remove("is-drawn");
+    labels.classList.remove("is-drawn");
+  }
+
+  // Labels live in HTML, not in the SVG: inside the viewBox they would be scaled
+  // by image-pixels-to-CSS-pixels and stop being readable. Positions are recomputed
+  // from the same contain-fit the <img> uses, so a chip never drifts off its box.
+  function layoutLabels() {
+    if (!frame) return;
+    const width = Number(frame.width);
+    const height = Number(frame.height);
+    const stageWidth = stage.clientWidth;
+    const stageHeight = stage.clientHeight;
+    if (!width || !height || !stageWidth || !stageHeight) return;
+    const scale = Math.min(stageWidth / width, stageHeight / height);
+    const left0 = (stageWidth - width * scale) / 2;
+    const top0 = (stageHeight - height * scale) / 2;
+    const placed = [];
+    for (const chip of labels.children) {
+      const boxWidth = Number(chip.dataset.w) * scale;
+      chip.hidden = boxWidth < 22;
+      if (chip.hidden) continue;
+      chip.classList.remove("is-compact");
+      let chipWidth = chip.offsetWidth;
+      if (chipWidth > boxWidth + 24) { chip.classList.add("is-compact"); chipWidth = chip.offsetWidth; }
+      const chipHeight = chip.offsetHeight;
+      const boxLeft = left0 + Number(chip.dataset.x) * scale;
+      const boxTop = top0 + Number(chip.dataset.y) * scale;
+      const maxLeft = left0 + width * scale - chipWidth;
+      const maxTop = top0 + height * scale - chipHeight;
+      const x = Math.min(Math.max(boxLeft, left0), Math.max(left0, maxLeft));
+      let y = boxTop - chipHeight >= top0 ? boxTop - chipHeight : boxTop;
+      const hits = (other) => x < other.x + other.w && x + chipWidth > other.x && y < other.y + other.h && y + chipHeight > other.y;
+      for (let guard = 0; guard < 4 && placed.some(hits) && y + chipHeight * 2 <= maxTop; guard += 1) y += chipHeight + 2;
+      y = Math.min(Math.max(y, top0), Math.max(top0, maxTop));
+      chip.style.left = `${Math.round(x)}px`;
+      chip.style.top = `${Math.round(y)}px`;
+      placed.push({ x, y, w: chipWidth, h: chipHeight });
+    }
+  }
+
   function paintResult(result, elapsed) {
+    frame = result.image;
     boxes.setAttribute("viewBox", `0 0 ${Number(result.image.width)} ${Number(result.image.height)}`);
     boxes.innerHTML = result.detections.map((item, index) => {
       const [x1, y1, x2, y2] = item.box.map(Number);
-      return `<g class="box box-${esc(item.label)}" style="--i:${index}"><rect pathLength="1" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}"/>`
-        + `<text x="${x1}" y="${Math.max(18, y1)}">${esc(item.label)} ${Math.round(item.confidence * 100)}%</text></g>`;
+      return `<g class="box box-${esc(item.label)}" style="--i:${index}"><rect pathLength="1" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}"/></g>`;
     }).join("");
-    if (!reduced()) requestAnimationFrame(() => boxes.classList.add("is-drawn"));
-    else boxes.classList.add("is-drawn");
+    labels.innerHTML = result.detections.map((item, index) => {
+      const [x1, y1, x2] = item.box.map(Number);
+      return `<b class="box-label${item.label === "pallet" ? " is-pallet" : ""}" style="--i:${index}" data-x="${x1}" data-y="${y1}" data-w="${x2 - x1}">`
+        + `<i>${esc(item.label)}</i><span>${Math.round(item.confidence * 100)}%</span></b>`;
+    }).join("");
+    requestAnimationFrame(layoutLabels);
+    if (!reduced()) requestAnimationFrame(() => { boxes.classList.add("is-drawn"); labels.classList.add("is-drawn"); });
+    else { boxes.classList.add("is-drawn"); labels.classList.add("is-drawn"); }
     facts.runtime.textContent = result.runtime;
     facts.model.textContent = fmtVal("hash12", result.model_sha256);
     facts.request.textContent = `${fmtVal("ms", elapsed)} ms`;
@@ -173,7 +226,7 @@ export function mountDetector({ store, api }) {
     const started = performance.now();
     runButton.disabled = true;
     runButton.textContent = t("wakingModel");
-    boxes.classList.remove("is-drawn");
+    clearBoxes();
     if (!reduced()) stage.classList.add("is-scanning");
     status(reduced() ? "coldStartWait" : "liveRequestInFlight");
     store.patch({ predict: { status: "pending", result: null, error: null }, scope: { status: "idle", result: null } });
@@ -213,6 +266,10 @@ export function mountDetector({ store, api }) {
     clearTimeout(copyTimer);
     copyTimer = setTimeout(() => { hashCopy.textContent = t("copy"); }, COPY_MS);
   });
+
+  if (typeof ResizeObserver === "function") new ResizeObserver(layoutLabels).observe(stage);
+  else window.addEventListener("resize", layoutLabels);
+  preview.addEventListener("load", layoutLabels);
 
   paintHash(null);
   paintSamples();
